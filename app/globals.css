@@ -1,0 +1,149 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --carbon-black: #161616;
+  --carbon-blue: #0f62fe;
+}
+
+html,
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+  background: #f4f4f4;
+  color: #161616;
+}
+
+@layer components {
+  .data-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    transition: border-color 0.15s ease;
+  }
+  .data-card:hover {
+    border-color: #c6c6c6;
+  }
+  .badge-airbnb {
+    background: #fff0f0;
+    color: #da1e28;
+  }
+  .badge-luxe {
+    background: #f0f0ff;
+    color: #6929c4;
+  }
+  .badge-direct {
+    background: #defbe6;
+    color: #198038;
+  }
+  .badge-vrbo {
+    background: #e5f6ff;
+    color: #0043ce;
+  }
+  .badge-tripadvisor {
+    background: #defbe6;
+    color: #00aa6c;
+  }
+  .badge-bookingcom {
+    background: #e5f6ff;
+    color: #003580;
+  }
+  .badge-stayone {
+    background: #f0e8ff;
+    color: #a56eff;
+  }
+  .metric-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: #e0e0e0;
+  }
+  .metric-fill {
+    height: 4px;
+    border-radius: 2px;
+  }
+  .tab-active {
+    color: #161616;
+    border-bottom: 2px solid #0f62fe;
+  }
+  .btn-primary {
+    @apply bg-[#0f62fe] hover:bg-[#0353e9] text-white text-sm font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  .btn-ghost {
+    @apply bg-white/10 hover:bg-white/15 text-white text-sm px-3 py-2 rounded-md transition-colors;
+  }
+  .sidebar {
+    width: 64px;
+    transition: width 0.18s ease, box-shadow 0.18s ease;
+  }
+  .sidebar:hover {
+    width: 136px;
+    box-shadow: 18px 0 28px rgba(0, 0, 0, 0.18);
+  }
+  .sidebar .nav-label {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-2px);
+    overflow: hidden;
+    transition: opacity 0.12s ease, max-height 0.16s ease, transform 0.12s ease;
+    pointer-events: none;
+  }
+  .sidebar:hover .nav-label {
+    opacity: 1;
+    max-height: 18px;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .sidebar-logo {
+    @apply flex h-14 items-center justify-center text-white/90 transition-colors hover:text-white;
+    flex-direction: column;
+  }
+  .sidebar-logo-mark {
+    @apply flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-base font-semibold tracking-tight;
+  }
+  .sidebar-logo-label {
+    @apply mt-1 text-[10px] font-semibold tracking-[0.16em] whitespace-nowrap;
+  }
+  .sidebar-link {
+    @apply mx-2 flex h-10 flex-col items-center justify-center rounded-md text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors;
+  }
+  .sidebar:hover .sidebar-link {
+    height: 48px;
+  }
+  .sidebar-link.active {
+    @apply text-white bg-white/10;
+  }
+  .sidebar-icon {
+    @apply h-5 w-5 shrink-0;
+  }
+  .sidebar-link-label {
+    @apply mt-1 text-[10px] leading-none text-center whitespace-nowrap;
+  }
+  .sidebar-action {
+    @apply mx-2 flex h-10 flex-col items-center justify-center rounded-md transition-colors;
+  }
+  .sidebar:hover .sidebar-action {
+    height: 48px;
+  }
+  .sidebar-action-primary {
+    @apply bg-[#0f62fe] hover:bg-[#0353e9] text-white;
+  }
+  .sidebar-action-ghost {
+    @apply text-white/60 hover:text-white hover:bg-white/10;
+  }
+  .input-base {
+    @apply w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe];
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c6c6c6;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #f4f4f4;
+}

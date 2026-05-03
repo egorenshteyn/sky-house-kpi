@@ -1,0 +1,224 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import CompetitorForm from "./CompetitorForm";
+import type { CompetitorRow } from "@/lib/queries";
+
+export default function CompetitorsClient({
+  competitors,
+}: {
+  competitors: CompetitorRow[];
+}) {
+  const router = useRouter();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<CompetitorRow | null>(null);
+
+  async function toggleActive(c: CompetitorRow) {
+    await fetch(`/api/comps/${c.id}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ...c,
+        amenities: c.amenities,
+        active: c.active ? 0 : 1,
+      }),
+    });
+    router.refresh();
+  }
+
+  async function remove(c: CompetitorRow) {
+    if (!confirm(`Delete competitor "${c.name}"? This will also delete all their pricing snapshots.`))
+      return;
+    await fetch(`/api/comps/${c.id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-gray-500">
+          {competitors.length} competitor{competitors.length === 1 ? "" : "s"} ·{" "}
+          {competitors.filter((c) => c.active).length} active
+        </div>
+        <button
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+          className="btn-primary inline-flex items-center gap-1.5"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Competitor
+        </button>
+      </div>
+
+      {competitors.length === 0 ? (
+        <div className="data-card rounded-lg p-10 text-center">
+          <div className="text-sm text-gray-400 mb-3">No competitors tracked yet.</div>
+          <button
+            onClick={() => {
+              setEditing(null);
+              setShowForm(true);
+            }}
+            className="btn-primary"
+          >
+            Add your first competitor
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          {competitors.map((c) => {
+            const amenities = (() => {
+              if (!c.amenities) return [] as string[];
+              try {
+                const parsed = JSON.parse(c.amenities);
+                if (Array.isArray(parsed)) return parsed as string[];
+              } catch {}
+              return c.amenities.split(",").map((s) => s.trim()).filter(Boolean);
+            })();
+            return (
+              <div key={c.id} className="data-card rounded-lg p-5 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-semibold text-[#161616] truncate">
+                        {c.name}
+                      </h3>
+                      {!c.active && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase font-mono">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400 font-mono">
+                      {c.platform || "—"} · {c.location || "—"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <Stat label="BR" value={c.bedrooms?.toString() || "—"} />
+                  <Stat label="BA" value={c.bathrooms?.toString() || "—"} />
+                  <Stat label="Sleeps" value={c.maxGuests?.toString() || "—"} />
+                </div>
+
+                {(c.avgRating !== null || c.reviewCount !== null) && (
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    {c.avgRating !== null && (
+                      <span className="font-mono">
+                        ★ {c.avgRating?.toFixed(2)}
+                      </span>
+                    )}
+                    {c.reviewCount !== null && (
+                      <span className="font-mono text-gray-400">
+                        {c.reviewCount} reviews
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {amenities.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {amenities.slice(0, 4).map((a, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                    {amenities.length > 4 && (
+                      <span className="text-[10px] text-gray-400">
+                        +{amenities.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <a
+                    href={c.listingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[#0f62fe] hover:text-[#0353e9]"
+                  >
+                    View listing →
+                  </a>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      onClick={() => toggleActive(c)}
+                      className="text-gray-400 hover:text-[#161616]"
+                    >
+                      {c.active ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditing(c);
+                        setShowForm(true);
+                      }}
+                      className="text-gray-400 hover:text-[#0f62fe]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => remove(c)}
+                      className="text-gray-400 hover:text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showForm && (
+        <Modal onClose={() => setShowForm(false)}>
+          <h3 className="text-sm font-semibold text-[#161616] mb-4">
+            {editing ? "Edit competitor" : "Add competitor"}
+          </h3>
+          <CompetitorForm
+            initial={editing || undefined}
+            onClose={() => setShowForm(false)}
+          />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-gray-50 rounded p-2 text-center">
+      <div className="text-[10px] uppercase font-mono text-gray-400">{label}</div>
+      <div className="text-sm font-mono font-semibold text-[#161616]">{value}</div>
+    </div>
+  );
+}
+
+function Modal({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
