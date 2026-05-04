@@ -14,8 +14,22 @@ function resolveDbPath() {
   // storage, but it lets the seeded dashboard run until we migrate to Postgres/Turso.
   if (process.env.VERCEL) {
     const runtimeDb = "/tmp/sky-house.db";
-    if (!fs.existsSync(runtimeDb) && fs.existsSync(bundledDb)) {
+    const markerPath = "/tmp/sky-house-db-deploy.txt";
+    const deployMarker =
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.VERCEL_DEPLOYMENT_ID ||
+      "local-vercel-runtime";
+    const existingMarker = fs.existsSync(markerPath)
+      ? fs.readFileSync(markerPath, "utf8")
+      : null;
+
+    // /tmp can survive between serverless invocations and even across a new
+    // deployment on a warm instance. Refresh it once per deployment so seeded
+    // bundled DB changes (new columns, seed photos, backfilled guest links) go
+    // live instead of reusing a stale /tmp copy.
+    if (fs.existsSync(bundledDb) && (!fs.existsSync(runtimeDb) || existingMarker !== deployMarker)) {
       fs.copyFileSync(bundledDb, runtimeDb);
+      fs.writeFileSync(markerPath, deployMarker);
     }
     return runtimeDb;
   }
