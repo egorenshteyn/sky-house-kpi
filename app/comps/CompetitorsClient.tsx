@@ -1,46 +1,188 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CompetitorForm from "./CompetitorForm";
 import type { CompetitorRow } from "@/lib/queries";
+
+const STORAGE_KEY = "sh.comps.overlay.v1";
+
+type Overlay = {
+  deleted: string[];
+  edits: Record<string, CompetitorRow>;
+  added: CompetitorRow[];
+};
+
+const EMPTY_OVERLAY: Overlay = { deleted: [], edits: {}, added: [] };
+
+function loadOverlay(): Overlay {
+  if (typeof window === "undefined") return EMPTY_OVERLAY;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return EMPTY_OVERLAY;
+    const parsed = JSON.parse(raw);
+    return {
+      deleted: Array.isArray(parsed?.deleted) ? parsed.deleted : [],
+      edits:
+        parsed?.edits && typeof parsed.edits === "object" && !Array.isArray(parsed.edits)
+          ? parsed.edits
+          : {},
+      added: Array.isArray(parsed?.added) ? parsed.added : [],
+    };
+  } catch {
+    return EMPTY_OVERLAY;
+  }
+}
 
 export default function CompetitorsClient({
   competitors,
 }: {
   competitors: CompetitorRow[];
 }) {
-  const router = useRouter();
+  const [overlay, setOverlay] = useState<Overlay>(EMPTY_OVERLAY);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CompetitorRow | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function toggleActive(c: CompetitorRow) {
-    await fetch(`/api/comps/${c.id}`, {
+  useEffect(() => {
+    setOverlay(loadOverlay());
+  }, []);
+
+  const effective = useMemo(() => {
+    const deleted = new Set(overlay.deleted);
+    const map = new Map<string, CompetitorRow>();
+    for (const c of competitors) {
+      if (deleted.has(c.id)) continue;
+      const edited = overlay.edits[c.id];
+      map.set(c.id, edited ? { ...c, ...edited, id: c.id } : c);
+    }
+    for (const c of overlay.added) {
+      if (deleted.has(c.id)) continue;
+      const edited = overlay.edits[c.id];
+      map.set(c.id, edited ? { ...c, ...edited, id: c.id } : c);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const aActive = a.active ? 1 : 0;
+      const bActive = b.active ? 1 : 0;
+      if (bActive !== aActive) return bActive - aActive;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }, [competitors, overlay]);
+
+  function persistOverlay(next: Overlay) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch (e: any) {
+      throw new Error(
+        "Could not save changes locally: " + (e?.message || "storage unavailable"),
+      );
+    }
+    setOverlay(next);
+    setError(null);
+  }
+
+  function applyAdd(record: CompetitorRow) {
+    const next: Overlay = {
+      ...overlay,
+      added: [...overlay.added.filter((a) => a.id !== record.id), record],
+      deleted: overlay.deleted.filter((id) => id !== record.id),
+    };
+    persistOverlay(next);
+  }
+
+  function applyEdit(record: CompetitorRow) {
+    const isAdded = overlay.added.some((a) => a.id === record.id);
+    const next: Overlay = isAdded
+      ? {
+          ...overlay,
+          added: overlay.added.map((a) => (a.id === record.id ? record : a)),
+        }
+      : {
+          ...overlay,
+          edits: { ...overlay.edits, [record.id]: record },
+        };
+    persistOverlay(next);
+  }
+
+  function applyDelete(id: string) {
+    const isAdded = overlay.added.some((a) => a.id === id);
+    const newEdits = { ...overlay.edits };
+    delete newEdits[id];
+    const next: Overlay = isAdded
+      ? {
+          ...overlay,
+          added: overlay.added.filter((a) => a.id !== id),
+          edits: newEdits,
+        }
+      : {
+          ...overlay,
+          deleted: overlay.deleted.includes(id)
+            ? overlay.deleted
+            : [...overlay.deleted, id],
+          edits: newEdits,
+        };
+    persistOverlay(next);
+  }
+
+  function toggleActive(c: CompetitorRow) {
+    const updated: CompetitorRow = {
+      ...c,
+      active: c.active ? 0 : 1,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      applyEdit(updated);
+    } catch (e: any) {
+      setError(e?.message || "Could not save changes locally");
+      return;
+    }
+    fetch(`/api/comps/${c.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        ...c,
-        imageUrl: c.imageUrl,
-        amenities: c.amenities,
-        active: c.active ? 0 : 1,
+        ...updated,
+        amenities: updated.amenities,
       }),
-    });
-    router.refresh();
+    }).catch(() => {});
   }
 
-  async function remove(c: CompetitorRow) {
-    if (!confirm(`Delete competitor "${c.name}"? This will also delete all their pricing snapshots.`))
+  function remove(c: CompetitorRow) {
+    if (
+      !confirm(
+        `Delete competitor "${c.name}"? This will also delete all their pricing snapshots.`,
+      )
+    )
       return;
-    await fetch(`/api/comps/${c.id}`, { method: "DELETE" });
-    router.refresh();
+    try {
+      applyDelete(c.id);
+    } catch (e: any) {
+      setError(e?.message || "Could not save changes locally");
+      return;
+    }
+    fetch(`/api/comps/${c.id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  function handleSave(record: CompetitorRow) {
+    if (editing) applyEdit(record);
+    else applyAdd(record);
   }
 
   return (
     <>
+      {error && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 flex items-start justify-between gap-3">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-500 hover:text-red-700 text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-500">
-          {competitors.length} competitor{competitors.length === 1 ? "" : "s"} ·{" "}
-          {competitors.filter((c) => c.active).length} active
+          {effective.length} competitor{effective.length === 1 ? "" : "s"} ·{" "}
+          {effective.filter((c) => c.active).length} active
         </div>
         <button
           onClick={() => {
@@ -56,7 +198,7 @@ export default function CompetitorsClient({
         </button>
       </div>
 
-      {competitors.length === 0 ? (
+      {effective.length === 0 ? (
         <div className="data-card rounded-lg p-10 text-center">
           <div className="text-sm text-gray-400 mb-3">No competitors tracked yet.</div>
           <button
@@ -71,7 +213,7 @@ export default function CompetitorsClient({
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {competitors.map((c) => {
+          {effective.map((c) => {
             const amenities = (() => {
               if (!c.amenities) return [] as string[];
               try {
@@ -188,6 +330,7 @@ export default function CompetitorsClient({
           </h3>
           <CompetitorForm
             initial={editing || undefined}
+            onSave={handleSave}
             onClose={() => setShowForm(false)}
           />
         </Modal>

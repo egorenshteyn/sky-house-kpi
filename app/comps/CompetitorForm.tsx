@@ -1,37 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { CompetitorRow } from "@/lib/queries";
 
 const PLATFORMS = ["Airbnb", "VRBO", "Booking.com", "Direct", "Other"];
 const PROPERTY_TYPES = ["house", "condo", "cabin", "apartment", "villa", "cottage", "other"];
 
-type Initial = {
-  id?: string;
-  name?: string | null;
-  platform?: string | null;
-  listingUrl?: string | null;
-  imageUrl?: string | null;
-  location?: string | null;
-  bedrooms?: number | null;
-  bathrooms?: number | null;
-  maxGuests?: number | null;
-  propertyType?: string | null;
-  amenities?: string | null;
-  avgRating?: number | null;
-  reviewCount?: number | null;
-  active?: number | null;
-  notes?: string | null;
-};
+function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export default function CompetitorForm({
   initial,
+  onSave,
   onClose,
 }: {
-  initial?: Initial;
+  initial?: CompetitorRow;
+  onSave?: (record: CompetitorRow) => void;
   onClose?: () => void;
 }) {
-  const router = useRouter();
   const initialAmenities = (() => {
     if (!initial?.amenities) return "";
     try {
@@ -53,7 +43,7 @@ export default function CompetitorForm({
     amenities: initialAmenities,
     avgRating: initial?.avgRating?.toString() || "",
     reviewCount: initial?.reviewCount?.toString() || "",
-    active: initial?.active === 0 ? 0 : 1,
+    active: (initial?.active === 0 ? 0 : 1) as 0 | 1,
     notes: initial?.notes || "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -63,44 +53,56 @@ export default function CompetitorForm({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setErr(null);
-    const amenities = form.amenities
+
+    const amenitiesArr = form.amenities
       ? form.amenities.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
-    const body = {
+    const amenitiesJson = amenitiesArr.length ? JSON.stringify(amenitiesArr) : null;
+    const id = initial?.id || generateId();
+    const now = new Date().toISOString();
+
+    const record: CompetitorRow = {
+      id,
       name: form.name,
-      platform: form.platform,
+      platform: form.platform || null,
       listingUrl: form.listingUrl,
       imageUrl: form.imageUrl.trim() || null,
       location: form.location || null,
       bedrooms: form.bedrooms ? parseInt(form.bedrooms, 10) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
       maxGuests: form.maxGuests ? parseInt(form.maxGuests, 10) : null,
-      propertyType: form.propertyType,
-      amenities,
+      propertyType: form.propertyType || null,
+      amenities: amenitiesJson,
       avgRating: form.avgRating ? parseFloat(form.avgRating) : null,
       reviewCount: form.reviewCount ? parseInt(form.reviewCount, 10) : null,
       active: form.active,
       notes: form.notes || null,
+      createdAt: initial?.createdAt || now,
+      updatedAt: now,
     };
+
     try {
-      const url = initial?.id ? `/api/comps/${initial.id}` : "/api/comps";
-      const res = await fetch(url, {
-        method: initial?.id ? "PUT" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      router.refresh();
-      onClose?.();
+      onSave?.(record);
     } catch (e: any) {
-      setErr(e.message);
-    } finally {
+      setErr(e?.message || "Could not save changes locally");
       setSubmitting(false);
+      return;
     }
+
+    const apiBody = { ...record, amenities: amenitiesArr };
+    const url = initial?.id ? `/api/comps/${initial.id}` : "/api/comps";
+    fetch(url, {
+      method: initial?.id ? "PUT" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(apiBody),
+    }).catch(() => {});
+
+    setSubmitting(false);
+    onClose?.();
   }
 
   return (
