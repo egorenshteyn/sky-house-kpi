@@ -1,6 +1,7 @@
 import SubHeader from "@/components/SubHeader";
 import { getAllExpenses, getAllMonthly } from "@/lib/queries";
 import { formatMoney, formatPct } from "@/lib/format";
+import ScenarioPanel from "./ScenarioPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -123,41 +124,13 @@ export default function FinancialsPage() {
           </table>
         </div>
 
-        <div className="data-card rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-[#161616] mb-3">Scenario inputs</h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Adjust property value or revenue assumption to recompute cap rate and yield.
-          </p>
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="Property asset value">
-              <input
-                type="number"
-                defaultValue={PROPERTY_VALUE}
-                disabled
-                className="input-base bg-gray-50 font-mono"
-              />
-            </Field>
-            <Field label="Annual revenue (avg 2020-23)">
-              <input
-                type="number"
-                defaultValue={baselineAnnualRevenue}
-                disabled
-                className="input-base bg-gray-50 font-mono"
-              />
-            </Field>
-            <Field label="Annual OpEx">
-              <input
-                type="number"
-                defaultValue={Math.round(yearlyOpex)}
-                disabled
-                className="input-base bg-gray-50 font-mono"
-              />
-            </Field>
-          </div>
-          <p className="text-xs text-gray-400 mt-4 font-mono">
-            Scenario modeling editor coming soon — values shown are derived from imported data.
-          </p>
-        </div>
+        <ScenarioPanel
+          defaults={{
+            propertyValue: PROPERTY_VALUE,
+            annualRevenue: baselineAnnualRevenue,
+            annualOpex: Math.round(yearlyOpex),
+          }}
+        />
       </div>
     </>
   );
@@ -169,15 +142,6 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
       <div className="text-xs text-gray-400 font-medium mb-1">{label}</div>
       <div className="text-2xl font-bold font-mono text-[#161616]">{value}</div>
       {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
-      {children}
     </div>
   );
 }

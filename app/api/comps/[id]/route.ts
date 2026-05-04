@@ -13,7 +13,7 @@ export async function PUT(
     : body.amenities || null;
   db.prepare(
     `UPDATE competitors SET
-       name = ?, platform = ?, listing_url = ?, location = ?,
+       name = ?, platform = ?, listing_url = ?, image_url = ?, location = ?,
        bedrooms = ?, bathrooms = ?, max_guests = ?, property_type = ?,
        amenities = ?, avg_rating = ?, review_count = ?, active = ?,
        notes = ?, updated_at = ?
@@ -22,6 +22,7 @@ export async function PUT(
     body.name,
     body.platform || null,
     body.listingUrl,
+    body.imageUrl || null,
     body.location || null,
     body.bedrooms ?? null,
     body.bathrooms ?? null,

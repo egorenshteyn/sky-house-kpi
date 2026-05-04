@@ -1,24 +1,7 @@
 import { getSqlite } from "./db";
-
-export type MonthlyAgg = {
-  id: string;
-  year: number;
-  month: number;
-  totalStays: number;
-  totalNights: number;
-  occupancyRate: number;
-  bookedRevenue: number;
-  cumulativeAnnualRevenue: number;
-  totalCumulativeRevenue: number;
-  revenueDirect: number;
-  revenueAirbnb: number;
-  revenueLuxe: number;
-  revenueVrbo: number;
-  revenueTripadvisor: number;
-  revenueBookingcom: number;
-  revenueStayone: number;
-  notes: string | null;
-};
+import type { MonthlyAgg } from "./dashboard";
+export type { MonthlyAgg } from "./dashboard";
+export { getAvailableNightsInYear } from "./dashboard";
 
 export type BookingRow = {
   id: string;
@@ -36,6 +19,24 @@ export type BookingRow = {
   numAdults: number | null;
   internalNotes: string | null;
   bookingCreatedDate: string | null;
+};
+
+export type BookingDetail = BookingRow & {
+  guestId: string | null;
+  guestLocation: string | null;
+  numChildren: number | null;
+  numPets: number | null;
+  cleaningFee: number | null;
+  petFee: number | null;
+  platformFees: number | null;
+  taxes: number | null;
+  refundsDiscounts: number | null;
+  guestNotes: string | null;
+  tags: string | null;
+  payoutReceived: number | null;
+  payoutReceivedDate: string | null;
+  securityDeposit: number | null;
+  channelConfirmationCode: string | null;
 };
 
 export function getAllMonthly(): MonthlyAgg[] {
@@ -91,11 +92,6 @@ export function getYearTotals(year: number) {
   );
 }
 
-export function getAvailableNightsInYear(year: number): number {
-  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-  return isLeap ? 366 : 365;
-}
-
 export function getAvailableYears(): number[] {
   const db = getSqlite();
   const rows = db
@@ -137,18 +133,26 @@ export function getAllBookings(): BookingRow[] {
     .all() as BookingRow[];
 }
 
-export function getBooking(id: string): BookingRow | undefined {
+export function getBooking(id: string): BookingDetail | undefined {
   const db = getSqlite();
   return db
     .prepare(
-      `SELECT id, guest_name as guestName, guest_phone as guestPhone, guest_email as guestEmail,
-              channel, status, check_in as checkIn, check_out as checkOut, nights,
+      `SELECT id, guest_id as guestId, guest_name as guestName, guest_phone as guestPhone,
+              guest_email as guestEmail, guest_location as guestLocation,
+              channel, channel_confirmation_code as channelConfirmationCode, status,
+              check_in as checkIn, check_out as checkOut, nights,
               gross_revenue as grossRevenue, net_payout as netPayout,
-              avg_nightly_rate as avgNightlyRate, num_adults as numAdults,
-              internal_notes as internalNotes, booking_created_date as bookingCreatedDate
+              avg_nightly_rate as avgNightlyRate,
+              num_adults as numAdults, num_children as numChildren, num_pets as numPets,
+              cleaning_fee as cleaningFee, pet_fee as petFee, platform_fees as platformFees,
+              taxes, refunds_discounts as refundsDiscounts,
+              payout_received as payoutReceived, payout_received_date as payoutReceivedDate,
+              security_deposit as securityDeposit,
+              internal_notes as internalNotes, guest_notes as guestNotes, tags,
+              booking_created_date as bookingCreatedDate
        FROM bookings WHERE id = ?`,
     )
-    .get(id) as BookingRow | undefined;
+    .get(id) as BookingDetail | undefined;
 }
 
 export type GuestRow = {
@@ -186,6 +190,53 @@ export function getAllGuests(): GuestRow[] {
     )
     .all() as GuestRow[];
   return guests;
+}
+
+export type GuestDetail = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  preferredChannel: string | null;
+  tags: string | null;
+  notes: string | null;
+  communicationNotes: string | null;
+  birthday: string | null;
+  sourceChannel: string | null;
+  createdAt: string | null;
+};
+
+export function getGuest(id: string): GuestDetail | undefined {
+  const db = getSqlite();
+  return db
+    .prepare(
+      `SELECT id, first_name as firstName, last_name as lastName, phone, email,
+              city, state, country, preferred_channel as preferredChannel,
+              tags, notes, communication_notes as communicationNotes,
+              birthday, source_channel as sourceChannel, created_at as createdAt
+       FROM guests WHERE id = ?`,
+    )
+    .get(id) as GuestDetail | undefined;
+}
+
+export function getBookingsForGuest(guestId: string): BookingRow[] {
+  const db = getSqlite();
+  return db
+    .prepare(
+      `SELECT id, guest_name as guestName, guest_phone as guestPhone, guest_email as guestEmail,
+              channel, status, check_in as checkIn, check_out as checkOut, nights,
+              gross_revenue as grossRevenue, net_payout as netPayout,
+              avg_nightly_rate as avgNightlyRate, num_adults as numAdults,
+              internal_notes as internalNotes, booking_created_date as bookingCreatedDate
+       FROM bookings
+       WHERE guest_id = ?
+       ORDER BY check_in DESC`,
+    )
+    .all(guestId) as BookingRow[];
 }
 
 export type ChannelRow = {
@@ -269,6 +320,7 @@ export type CompetitorRow = {
   name: string;
   platform: string | null;
   listingUrl: string;
+  imageUrl: string | null;
   location: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
@@ -287,7 +339,7 @@ export function getAllCompetitors(): CompetitorRow[] {
   const db = getSqlite();
   return db
     .prepare(
-      `SELECT id, name, platform, listing_url as listingUrl, location,
+      `SELECT id, name, platform, listing_url as listingUrl, image_url as imageUrl, location,
               bedrooms, bathrooms, max_guests as maxGuests, property_type as propertyType,
               amenities, avg_rating as avgRating, review_count as reviewCount,
               active, notes, created_at as createdAt, updated_at as updatedAt
@@ -301,7 +353,7 @@ export function getCompetitor(id: string): CompetitorRow | undefined {
   const db = getSqlite();
   return db
     .prepare(
-      `SELECT id, name, platform, listing_url as listingUrl, location,
+      `SELECT id, name, platform, listing_url as listingUrl, image_url as imageUrl, location,
               bedrooms, bathrooms, max_guests as maxGuests, property_type as propertyType,
               amenities, avg_rating as avgRating, review_count as reviewCount,
               active, notes, created_at as createdAt, updated_at as updatedAt

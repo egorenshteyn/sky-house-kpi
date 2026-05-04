@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSqlite } from "@/lib/db";
+import { findOrCreateGuest } from "@/lib/guests";
 import { randomUUID } from "crypto";
 
 export async function GET() {
@@ -17,15 +18,23 @@ export async function POST(req: Request) {
   const now = new Date().toISOString();
   const propertyId = "skyhouse-dillon-beach";
 
+  const guestId = findOrCreateGuest(db, {
+    guestName: body.guestName,
+    guestPhone: body.guestPhone,
+    guestEmail: body.guestEmail,
+    guestLocation: body.guestLocation,
+    channel: body.channel,
+  });
+
   db.prepare(
     `INSERT INTO bookings (
-       id, property_id, channel, status, guest_name, guest_phone, guest_email, guest_location,
+       id, property_id, channel, status, guest_id, guest_name, guest_phone, guest_email, guest_location,
        num_adults, num_children, num_pets, check_in, check_out, nights,
        booking_created_date, gross_revenue, cleaning_fee, pet_fee, platform_fees,
        taxes, net_payout, avg_nightly_rate, internal_notes, guest_notes, tags,
        created_at, updated_at
      ) VALUES (
-       ?, ?, ?, ?, ?, ?, ?, ?,
+       ?, ?, ?, ?, ?, ?, ?, ?, ?,
        ?, ?, ?, ?, ?, ?,
        ?, ?, ?, ?, ?,
        ?, ?, ?, ?, ?, ?,
@@ -36,6 +45,7 @@ export async function POST(req: Request) {
     propertyId,
     body.channel,
     body.status,
+    guestId,
     body.guestName || null,
     body.guestPhone || null,
     body.guestEmail || null,
@@ -61,5 +71,5 @@ export async function POST(req: Request) {
     now,
   );
 
-  return NextResponse.json({ id });
+  return NextResponse.json({ id, guestId });
 }

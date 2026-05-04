@@ -11,6 +11,7 @@ type Initial = {
   name?: string | null;
   platform?: string | null;
   listingUrl?: string | null;
+  imageUrl?: string | null;
   location?: string | null;
   bedrooms?: number | null;
   bathrooms?: number | null;
@@ -43,6 +44,7 @@ export default function CompetitorForm({
     name: initial?.name || "",
     platform: initial?.platform || "Airbnb",
     listingUrl: initial?.listingUrl || "",
+    imageUrl: initial?.imageUrl || "",
     location: initial?.location || "Dillon Beach, CA",
     bedrooms: initial?.bedrooms?.toString() || "",
     bathrooms: initial?.bathrooms?.toString() || "",
@@ -72,6 +74,7 @@ export default function CompetitorForm({
       name: form.name,
       platform: form.platform,
       listingUrl: form.listingUrl,
+      imageUrl: form.imageUrl.trim() || null,
       location: form.location || null,
       bedrooms: form.bedrooms ? parseInt(form.bedrooms, 10) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
@@ -143,6 +146,28 @@ export default function CompetitorForm({
             required
             placeholder="https://..."
           />
+        </Field>
+        <Field label="Photo URL" full>
+          <input
+            type="url"
+            value={form.imageUrl}
+            onChange={(e) => set("imageUrl", e.target.value)}
+            className="input-base"
+            placeholder="https://images.example.com/listing.jpg"
+          />
+          {form.imageUrl && (
+            <div className="mt-2 aspect-video w-full rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.imageUrl}
+                alt="Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          )}
         </Field>
         <Field label="Location" full>
           <input

@@ -139,6 +139,7 @@ export const competitors = sqliteTable("competitors", {
   name: text("name").notNull(),
   platform: text("platform"),
   listingUrl: text("listing_url").notNull(),
+  imageUrl: text("image_url"),
   location: text("location"),
   bedrooms: integer("bedrooms"),
   bathrooms: real("bathrooms"),

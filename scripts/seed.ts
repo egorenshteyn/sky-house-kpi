@@ -460,10 +460,10 @@ async function main() {
   console.log("→ Seeding comp set…");
   const insertCompetitor = sqlite.prepare(
     `INSERT INTO competitors (
-       id, name, platform, listing_url, location, bedrooms, bathrooms,
+       id, name, platform, listing_url, image_url, location, bedrooms, bathrooms,
        max_guests, property_type, amenities, avg_rating, review_count,
        active, notes, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   const seedCompetitors = [
@@ -472,6 +472,7 @@ async function main() {
       name: "Ocean View Retreat",
       platform: "Airbnb",
       listingUrl: "https://www.airbnb.com/rooms/example-ocean-view",
+      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop",
       location: "Dillon Beach, CA",
       bedrooms: 4,
       bathrooms: 3,
@@ -487,6 +488,7 @@ async function main() {
       name: "Beach Bluff Cottage",
       platform: "VRBO",
       listingUrl: "https://www.vrbo.com/example-beach-bluff",
+      imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=1200&auto=format&fit=crop",
       location: "Dillon Beach, CA",
       bedrooms: 3,
       bathrooms: 2,
@@ -502,6 +504,7 @@ async function main() {
       name: "Pelican Point House",
       platform: "Airbnb",
       listingUrl: "https://www.airbnb.com/rooms/example-pelican-point",
+      imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop",
       location: "Dillon Beach, CA",
       bedrooms: 5,
       bathrooms: 4,
@@ -517,6 +520,7 @@ async function main() {
       name: "Lagoon Loft",
       platform: "Airbnb",
       listingUrl: "https://www.airbnb.com/rooms/example-lagoon-loft",
+      imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop",
       location: "Dillon Beach, CA",
       bedrooms: 2,
       bathrooms: 2,
@@ -536,6 +540,7 @@ async function main() {
       c.name,
       c.platform,
       c.listingUrl,
+      (c as any).imageUrl || null,
       c.location,
       c.bedrooms,
       c.bathrooms,

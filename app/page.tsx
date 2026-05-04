@@ -2,13 +2,24 @@ import SubHeader from "@/components/SubHeader";
 import KpiCard from "@/components/KpiCard";
 import RevenueBarChart from "@/components/charts/RevenueBarChart";
 import OccupancyLineChart from "@/components/charts/OccupancyLineChart";
+import DashboardControls from "./DashboardControls";
 import {
+  getAllMonthly,
   getMonthlyForYear,
-  getYearTotals,
   getAvailableNightsInYear,
   getUpcomingBookings,
   getActiveInsights,
 } from "@/lib/queries";
+import {
+  parsePeriod,
+  parseBasis,
+  computeWindow,
+  priorWindow,
+  filterMonthsByWindow,
+  sumWindow,
+  availableNightsForPeriod,
+  periodLabel,
+} from "@/lib/dashboard";
 import { computeInsights } from "@/lib/insights";
 import {
   formatMoney,
@@ -18,11 +29,6 @@ import {
   channelBadgeClass,
 } from "@/lib/format";
 import Link from "next/link";
-
-const MONTHS_FULL = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
 
 export const dynamic = "force-dynamic";
 
@@ -47,60 +53,74 @@ function monthlyArrays(months: { month: number; bookedRevenue: number; occupancy
   return { rev, occ, nights };
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { period?: string; basis?: string };
+}) {
   const today = new Date();
-  const currentYear = today.getFullYear();
+  const period = parsePeriod(searchParams?.period);
+  const basis = parseBasis(searchParams?.basis);
 
-  // Decide the "primary" year. If current year has any data, use it; else use most recent year with data.
-  const primary = currentYear;
-  const prior = primary - 1;
-  const prior2 = primary - 2;
+  const allMonthly = getAllMonthly();
+  const window = computeWindow(period, today);
+  const prior = priorWindow(period, today);
 
-  const monthsPrimary = getMonthlyForYear(primary);
-  const monthsPrior = getMonthlyForYear(prior);
-  const monthsPrior2 = getMonthlyForYear(prior2);
+  const currentMonths = filterMonthsByWindow(allMonthly, window);
+  const priorMonths = filterMonthsByWindow(allMonthly, prior);
 
-  const totalsPrimary = getYearTotals(primary);
-  const totalsPrior = getYearTotals(prior);
+  const totalsPrimary = sumWindow(currentMonths);
+  const totalsPrior = sumWindow(priorMonths);
 
-  // KPI calcs
+  const availableNights = availableNightsForPeriod(period, today, currentMonths);
+  const priorAvailableNights = availableNightsForPeriod(
+    period,
+    new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()),
+    priorMonths,
+  );
+
   const revenue = totalsPrimary.bookedRevenue;
   const revenuePrior = totalsPrior.bookedRevenue;
   const revenueDeltaPct =
     revenuePrior > 0 ? ((revenue - revenuePrior) / revenuePrior) * 100 : 0;
 
-  // Net payout: ~85% of gross as a rough estimate
   const netPayout = revenue * 0.85;
 
   const nights = totalsPrimary.totalNights;
   const nightsPrior = totalsPrior.totalNights;
-  const availableNights = getAvailableNightsInYear(primary);
-  const occupancy = nights > 0 ? (nights / availableNights) * 100 : 0;
+  const occupancy = availableNights > 0 ? (nights / availableNights) * 100 : 0;
   const occupancyPrior =
-    nightsPrior > 0
-      ? (nightsPrior / getAvailableNightsInYear(prior)) * 100
-      : 0;
+    priorAvailableNights > 0 ? (nightsPrior / priorAvailableNights) * 100 : 0;
   const occupancyDelta = occupancy - occupancyPrior;
 
   const adr = nights > 0 ? revenue / nights : 0;
   const adrPrior = nightsPrior > 0 ? revenuePrior / nightsPrior : 0;
   const adrDeltaPct = adrPrior > 0 ? ((adr - adrPrior) / adrPrior) * 100 : 0;
 
-  const revpan = revenue / availableNights;
-  const revpanPrior = revenuePrior / getAvailableNightsInYear(prior);
+  const revpan = availableNights > 0 ? revenue / availableNights : 0;
+  const revpanPrior = priorAvailableNights > 0 ? revenuePrior / priorAvailableNights : 0;
   const revpanDeltaPct =
     revpanPrior > 0 ? ((revpan - revpanPrior) / revpanPrior) * 100 : 0;
 
-  // Channel breakdown
+  // Year anchor for charts (always show current year + prior years for comparison context)
+  const currentYear = today.getFullYear();
+  const monthsPrimary = getMonthlyForYear(currentYear);
+  const monthsPrior = getMonthlyForYear(currentYear - 1);
+  const monthsPrior2 = getMonthlyForYear(currentYear - 2);
+
+  // Channel breakdown for the selected window
   const channelTotals = [
-    { name: "Airbnb", value: totalsPrimary.revenueAirbnb, color: "#FF5A5F" },
-    { name: "Luxe", value: totalsPrimary.revenueLuxe, color: "#6929c4" },
-    { name: "Direct", value: totalsPrimary.revenueDirect, color: "#198038" },
-    { name: "VRBO", value: totalsPrimary.revenueVrbo, color: "#0043ce" },
-    { name: "TripAdvisor", value: totalsPrimary.revenueTripadvisor, color: "#00aa6c" },
-    { name: "Booking.com", value: totalsPrimary.revenueBookingcom, color: "#003580" },
-    { name: "StayOne", value: totalsPrimary.revenueStayone, color: "#a56eff" },
-  ].filter((c) => c.value > 0 || c.name === "Airbnb" || c.name === "Luxe" || c.name === "Direct" || c.name === "VRBO");
+    { name: "Airbnb", value: totalsPrimary.channels.Airbnb, color: "#FF5A5F" },
+    { name: "Luxe", value: totalsPrimary.channels.Luxe, color: "#6929c4" },
+    { name: "Direct", value: totalsPrimary.channels.Direct, color: "#198038" },
+    { name: "VRBO", value: totalsPrimary.channels.VRBO, color: "#0043ce" },
+    { name: "TripAdvisor", value: totalsPrimary.channels.TripAdvisor, color: "#00aa6c" },
+    { name: "Booking.com", value: totalsPrimary.channels["Booking.com"], color: "#003580" },
+    { name: "StayOne", value: totalsPrimary.channels.StayOne, color: "#a56eff" },
+  ].filter((c) =>
+    c.value > 0 ||
+    c.name === "Airbnb" || c.name === "Luxe" || c.name === "Direct" || c.name === "VRBO",
+  );
 
   const channelTotal = channelTotals.reduce((acc, c) => acc + c.value, 0);
 
@@ -110,20 +130,20 @@ export default function DashboardPage() {
   const arrPrior2 = monthlyArrays(monthsPrior2);
 
   const revenueSeries = [
-    { year: primary, data: pad12(arrPrimary.rev), color: "#0f62fe" },
-    { year: prior, data: pad12(arrPrior.rev), color: "#c6c6c6" },
-    { year: prior2, data: pad12(arrPrior2.rev), color: "#e8e8e8" },
+    { year: currentYear, data: pad12(arrPrimary.rev), color: "#0f62fe" },
+    { year: currentYear - 1, data: pad12(arrPrior.rev), color: "#c6c6c6" },
+    { year: currentYear - 2, data: pad12(arrPrior2.rev), color: "#e8e8e8" },
   ];
 
   const occupancySeries = [
     {
-      year: primary,
+      year: currentYear,
       data: pad12(arrPrimary.occ),
       color: "#0f62fe",
       filled: true,
     },
     {
-      year: prior,
+      year: currentYear - 1,
       data: pad12(arrPrior.occ),
       color: "#c6c6c6",
       dashed: true,
@@ -135,18 +155,18 @@ export default function DashboardPage() {
   const adrGap = adr - adrPrior;
   const pacingText =
     revenueGap >= 0
-      ? `${primary} is pacing ahead of ${prior} by ${formatMoney(revenueGap, { compact: true })} in revenue`
-      : `${primary} is pacing behind ${prior} by ${formatMoney(Math.abs(revenueGap), { compact: true })} in revenue but ${
+      ? `${periodLabel(period)} is pacing ahead of the prior period by ${formatMoney(revenueGap, { compact: true })} in revenue`
+      : `${periodLabel(period)} is pacing behind the prior period by ${formatMoney(Math.abs(revenueGap), { compact: true })} in revenue but ${
           adrGap >= 0 ? "ahead" : "behind"
         } on ADR by ${formatMoney(Math.abs(adrGap))}/night`;
   const pacingSubtext = `Nights: ${nights} vs ${nightsPrior}. ADR: ${formatMoney(adr)} vs ${formatMoney(adrPrior)}.`;
 
   // Channel health warnings
   const warnings: { label: string; tone: "red" | "amber" }[] = [];
-  if (totalsPrimary.revenueVrbo === 0 && totalsPrior.revenueVrbo > 0) {
+  if (totalsPrimary.channels.VRBO === 0 && totalsPrior.channels.VRBO > 0) {
     warnings.push({ label: "VRBO inactive", tone: "red" });
   }
-  const airbnbPct = channelTotal > 0 ? (totalsPrimary.revenueAirbnb / channelTotal) * 100 : 0;
+  const airbnbPct = channelTotal > 0 ? (totalsPrimary.channels.Airbnb / channelTotal) * 100 : 0;
   if (airbnbPct >= 50) {
     warnings.push({
       label: `${airbnbPct.toFixed(0)}% Airbnb dependency`,
@@ -157,7 +177,6 @@ export default function DashboardPage() {
   const upcoming = getUpcomingBookings(8);
   const stored = getActiveInsights();
   const computed = computeInsights();
-  // Prioritize competitive/pricing/knowledge insights so the panel surfaces them when comp data exists
   const computedPriority = computed.filter((c) =>
     c.type === "competitive" || c.type === "pricing_recommendation" || c.type === "knowledge_reference",
   );
@@ -191,29 +210,36 @@ export default function DashboardPage() {
     })
     .slice(0, 4);
 
+  const basisNotice =
+    basis === "booking"
+      ? "Showing stay-date numbers below. Booking-date revenue requires booking-level data — not all historical months have it. Add booking-level entries to enable this view."
+      : basis === "payout"
+        ? "Showing stay-date numbers below. Payout-date revenue requires per-payout records — not yet captured. Mark payouts on bookings to enable this view."
+        : null;
+
   return (
     <>
       <SubHeader
         title="Executive Dashboard"
-        subtitle={`${primary} YTD · Dillon Beach, CA`}
-        actions={
-          <>
-            <div className="flex border border-gray-200 rounded-md overflow-hidden text-sm">
-              <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50">MTD</button>
-              <button className="px-3 py-1.5 bg-[#161616] text-white font-medium">YTD</button>
-              <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50">T12</button>
-              <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50">ALL</button>
-            </div>
-            <select className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 bg-white">
-              <option>Stay-date revenue</option>
-              <option>Booking-date revenue</option>
-              <option>Payout-date revenue</option>
-            </select>
-          </>
-        }
+        subtitle={`${window.label} · Dillon Beach, CA`}
+        actions={<DashboardControls period={period} basis={basis} />}
       />
 
       <div className="px-6 py-6 space-y-4">
+        {basisNotice && (
+          <div className="data-card rounded-lg p-4 flex items-start gap-3 border-l-2 border-amber-400">
+            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-[#161616]">
+                {basis === "booking" ? "Booking-date revenue not yet computed" : "Payout-date revenue not yet computed"}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">{basisNotice}</div>
+            </div>
+          </div>
+        )}
+
         {/* KPI Row */}
         <div className="grid grid-cols-6 gap-3">
           <KpiCard
@@ -276,14 +302,14 @@ export default function DashboardPage() {
               <div className="text-lg font-bold font-mono text-[#161616]">
                 {formatMoney(revenue, { compact: true })}
               </div>
-              <div className="text-xs text-gray-400">{primary}</div>
+              <div className="text-xs text-gray-400">{period}</div>
             </div>
             <div className="text-center text-gray-300 self-center">/</div>
             <div className="text-center">
               <div className="text-lg font-bold font-mono text-gray-400">
                 {formatMoney(revenuePrior, { compact: true })}
               </div>
-              <div className="text-xs text-gray-400">{prior}</div>
+              <div className="text-xs text-gray-400">prior</div>
             </div>
           </div>
         </div>
@@ -297,15 +323,15 @@ export default function DashboardPage() {
                 <div className="flex gap-3 text-xs">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-sm bg-[#0f62fe]" />
-                    <span className="text-gray-400">{primary}</span>
+                    <span className="text-gray-400">{currentYear}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-sm bg-gray-300" />
-                    <span className="text-gray-400">{prior}</span>
+                    <span className="text-gray-400">{currentYear - 1}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-sm bg-gray-200" />
-                    <span className="text-gray-400">{prior2}</span>
+                    <span className="text-gray-400">{currentYear - 2}</span>
                   </span>
                 </div>
               </div>
@@ -487,11 +513,11 @@ export default function DashboardPage() {
             <div className="flex gap-3 text-xs">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm bg-[#0f62fe]" />
-                <span className="text-gray-400">{primary}</span>
+                <span className="text-gray-400">{currentYear}</span>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm bg-gray-300" />
-                <span className="text-gray-400">{prior}</span>
+                <span className="text-gray-400">{currentYear - 1}</span>
               </span>
             </div>
           </div>

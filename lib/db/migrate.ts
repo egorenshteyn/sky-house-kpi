@@ -147,6 +147,7 @@ export function runMigrations(dbPath?: string) {
       name TEXT NOT NULL,
       platform TEXT,
       listing_url TEXT NOT NULL,
+      image_url TEXT,
       location TEXT,
       bedrooms INTEGER,
       bathrooms REAL,
@@ -199,7 +200,22 @@ export function runMigrations(dbPath?: string) {
     CREATE INDEX IF NOT EXISTS idx_knowledge_archived ON knowledge_base(archived);
   `);
 
+  // Idempotent column additions for existing databases.
+  addColumnIfMissing(sqlite, "competitors", "image_url", "TEXT");
+
   sqlite.close();
+}
+
+function addColumnIfMissing(
+  sqlite: Database.Database,
+  table: string,
+  column: string,
+  type: string,
+) {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }
 
 if (require.main === module) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSqlite } from "@/lib/db";
+import { findOrCreateGuest } from "@/lib/guests";
 
 export async function GET(
   _req: Request,
@@ -18,9 +19,24 @@ export async function PUT(
   const body = await req.json();
   const db = getSqlite();
   const now = new Date().toISOString();
+
+  const existing = db
+    .prepare(`SELECT guest_id FROM bookings WHERE id = ?`)
+    .get(params.id) as { guest_id: string | null } | undefined;
+  let guestId = existing?.guest_id || null;
+  if (!guestId) {
+    guestId = findOrCreateGuest(db, {
+      guestName: body.guestName,
+      guestPhone: body.guestPhone,
+      guestEmail: body.guestEmail,
+      guestLocation: body.guestLocation,
+      channel: body.channel,
+    });
+  }
+
   db.prepare(
     `UPDATE bookings SET
-       channel = ?, status = ?, guest_name = ?, guest_phone = ?, guest_email = ?,
+       channel = ?, status = ?, guest_id = ?, guest_name = ?, guest_phone = ?, guest_email = ?,
        guest_location = ?, num_adults = ?, num_children = ?, num_pets = ?,
        check_in = ?, check_out = ?, nights = ?, booking_created_date = ?,
        gross_revenue = ?, cleaning_fee = ?, pet_fee = ?, platform_fees = ?,
@@ -30,6 +46,7 @@ export async function PUT(
   ).run(
     body.channel,
     body.status,
+    guestId,
     body.guestName || null,
     body.guestPhone || null,
     body.guestEmail || null,
@@ -54,7 +71,7 @@ export async function PUT(
     now,
     params.id,
   );
-  return NextResponse.json({ id: params.id });
+  return NextResponse.json({ id: params.id, guestId });
 }
 
 export async function DELETE(

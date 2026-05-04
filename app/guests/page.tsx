@@ -75,32 +75,52 @@ export default function GuestsPage({
                   </tr>
                 ) : (
                   guests.map((g) => (
-                    <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr
+                      key={g.id}
+                      className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    >
                       <td className="px-5 py-3 font-medium">
-                        {g.firstName} {g.lastName}
+                        <Link
+                          href={`/guests/${g.id}`}
+                          className="block text-[#161616] hover:text-[#0f62fe]"
+                        >
+                          {g.firstName} {g.lastName}
+                        </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-600 font-mono text-xs">
-                        {g.phone || "—"}
+                        <Link href={`/guests/${g.id}`} className="block">
+                          {g.phone || "—"}
+                        </Link>
                       </td>
                       <td className="px-5 py-3">
-                        {g.preferredChannel ? (
-                          <span
-                            className={`${channelBadgeClass(
-                              g.preferredChannel,
-                            )} px-2 py-0.5 rounded text-xs font-medium`}
-                          >
-                            {g.preferredChannel}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">—</span>
-                        )}
+                        <Link href={`/guests/${g.id}`} className="block">
+                          {g.preferredChannel ? (
+                            <span
+                              className={`${channelBadgeClass(
+                                g.preferredChannel,
+                              )} px-2 py-0.5 rounded text-xs font-medium`}
+                            >
+                              {g.preferredChannel}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </Link>
                       </td>
-                      <td className="px-5 py-3 font-mono">{g.totalStays || 0}</td>
+                      <td className="px-5 py-3 font-mono">
+                        <Link href={`/guests/${g.id}`} className="block">
+                          {g.totalStays || 0}
+                        </Link>
+                      </td>
                       <td className="px-5 py-3 text-right font-mono font-semibold">
-                        {formatMoney(g.totalRevenue || 0)}
+                        <Link href={`/guests/${g.id}`} className="block">
+                          {formatMoney(g.totalRevenue || 0)}
+                        </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-600 font-mono text-xs">
-                        {g.lastStay ? formatDateShort(g.lastStay) : "—"}
+                        <Link href={`/guests/${g.id}`} className="block">
+                          {g.lastStay ? formatDateShort(g.lastStay) : "—"}
+                        </Link>
                       </td>
                     </tr>
                   ))

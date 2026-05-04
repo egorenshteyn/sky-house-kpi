@@ -20,6 +20,7 @@ export default function CompetitorsClient({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         ...c,
+        imageUrl: c.imageUrl,
         amenities: c.amenities,
         active: c.active ? 0 : 1,
       }),
@@ -80,7 +81,9 @@ export default function CompetitorsClient({
               return c.amenities.split(",").map((s) => s.trim()).filter(Boolean);
             })();
             return (
-              <div key={c.id} className="data-card rounded-lg p-5 space-y-3">
+              <div key={c.id} className="data-card rounded-lg overflow-hidden flex flex-col">
+                <CompPhoto imageUrl={c.imageUrl} name={c.name} />
+                <div className="p-5 space-y-3 flex-1 flex flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -138,7 +141,7 @@ export default function CompetitorsClient({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
                   <a
                     href={c.listingUrl}
                     target="_blank"
@@ -171,6 +174,7 @@ export default function CompetitorsClient({
                     </button>
                   </div>
                 </div>
+                </div>
               </div>
             );
           })}
@@ -189,6 +193,31 @@ export default function CompetitorsClient({
         </Modal>
       )}
     </>
+  );
+}
+
+function CompPhoto({ imageUrl, name }: { imageUrl: string | null; name: string }) {
+  const [errored, setErrored] = useState(false);
+  const showImage = imageUrl && !errored;
+  return (
+    <div className="aspect-video w-full bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setErrored(true)}
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+          <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-[10px] uppercase font-mono tracking-wider">No photo</span>
+        </div>
+      )}
+    </div>
   );
 }
 

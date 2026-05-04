@@ -1,6 +1,7 @@
 import SubHeader from "@/components/SubHeader";
 import { getAllChannels, getAllMonthly } from "@/lib/queries";
 import { formatMoney, formatPct, channelBadgeClass } from "@/lib/format";
+import ChannelManager from "./ChannelManager";
 
 export const dynamic = "force-dynamic";
 
@@ -156,6 +157,8 @@ export default function ChannelsPage() {
             </table>
           </div>
         )}
+
+        <ChannelManager channels={channels} />
       </div>
     </>
   );

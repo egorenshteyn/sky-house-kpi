@@ -1,5 +1,6 @@
 import SubHeader from "@/components/SubHeader";
 import BookingForm from "../BookingForm";
+import BookingDeleteButton from "./BookingDeleteButton";
 import { getBooking } from "@/lib/queries";
 import { notFound } from "next/navigation";
 import { formatDateFull, formatMoney, channelBadgeClass } from "@/lib/format";
@@ -16,11 +17,14 @@ export default function BookingDetailPage({ params }: { params: { id: string } }
         title={b.guestName || "Booking"}
         subtitle={`${formatDateFull(b.checkIn || "")} → ${formatDateFull(b.checkOut || "")} · ${b.nights || 0} nights`}
         actions={
-          b.channel ? (
-            <span className={`${channelBadgeClass(b.channel)} px-3 py-1 rounded text-sm font-medium`}>
-              {b.channel}
-            </span>
-          ) : null
+          <div className="flex items-center gap-2">
+            {b.channel && (
+              <span className={`${channelBadgeClass(b.channel)} px-3 py-1 rounded text-sm font-medium`}>
+                {b.channel}
+              </span>
+            )}
+            <BookingDeleteButton id={b.id} guestName={b.guestName} />
+          </div>
         }
       />
       <div className="px-6 py-6 space-y-4">

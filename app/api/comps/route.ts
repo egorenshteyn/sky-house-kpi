@@ -6,7 +6,7 @@ export async function GET() {
   const db = getSqlite();
   const rows = db
     .prepare(
-      `SELECT id, name, platform, listing_url as listingUrl, location,
+      `SELECT id, name, platform, listing_url as listingUrl, image_url as imageUrl, location,
               bedrooms, bathrooms, max_guests as maxGuests, property_type as propertyType,
               amenities, avg_rating as avgRating, review_count as reviewCount,
               active, notes, created_at as createdAt, updated_at as updatedAt
@@ -33,15 +33,16 @@ export async function POST(req: Request) {
     : body.amenities || null;
   db.prepare(
     `INSERT INTO competitors (
-       id, name, platform, listing_url, location, bedrooms, bathrooms,
+       id, name, platform, listing_url, image_url, location, bedrooms, bathrooms,
        max_guests, property_type, amenities, avg_rating, review_count,
        active, notes, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     body.name,
     body.platform || null,
     body.listingUrl,
+    body.imageUrl || null,
     body.location || null,
     body.bedrooms ?? null,
     body.bathrooms ?? null,
