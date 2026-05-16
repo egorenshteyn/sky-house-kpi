@@ -43,6 +43,7 @@ export function channelBadgeClass(channel: string): string {
   if (c === "vrbo") return "badge-vrbo";
   if (c === "tripadvisor") return "badge-tripadvisor";
   if (c === "bookingcom") return "badge-bookingcom";
+  if (c === "lodgify") return "bg-gray-900 text-white";
   if (c === "stayone") return "badge-stayone";
   return "bg-gray-100 text-gray-600";
 }
@@ -62,6 +63,8 @@ export function channelColor(channel: string): string {
       return "#00aa6c";
     case "bookingcom":
       return "#003580";
+    case "lodgify":
+      return "#393939";
     case "stayone":
       return "#a56eff";
     default:

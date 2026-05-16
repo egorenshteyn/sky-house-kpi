@@ -20,7 +20,9 @@ export default function CalendarPage({
   const year = parseInt(searchParams?.year || String(today.getFullYear()));
   const month = parseInt(searchParams?.month || String(today.getMonth() + 1));
 
-  const bookings = getAllBookings();
+  const bookings = getAllBookings().filter((b) =>
+    ["booked", "completed", "owner_block", "maintenance_block"].includes(b.status || "booked"),
+  );
 
   const firstOfMonth = new Date(Date.UTC(year, month - 1, 1));
   const startWeekday = firstOfMonth.getUTCDay();

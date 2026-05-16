@@ -4,5 +4,7 @@ node_modules
 .vercel
 *.db-shm
 *.db-wal
+*.backup-*.db
+*.db.backup-*.db
 *.tsbuildinfo
 .DS_Store
