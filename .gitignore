@@ -2,6 +2,7 @@ node_modules
 .next
 .env.local
 .vercel
+backups/
 *.db-shm
 *.db-wal
 *.backup-*.db

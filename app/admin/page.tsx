@@ -2,7 +2,7 @@ import SubHeader from "@/components/SubHeader";
 import { getAllBookings, getAllMonthly } from "@/lib/queries";
 import { formatDateShort, formatMoney } from "@/lib/format";
 import { getSqlite } from "@/lib/db";
-import LodgifySyncButton from "./LodgifySyncButton";
+import HospitableSyncButton from "./HospitableSyncButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +66,7 @@ export default function AdminPage() {
     <>
       <SubHeader title="Data Admin" subtitle="Quality checks, import history, exports" />
       <div className="px-6 py-6 space-y-4">
-        <LodgifySyncButton />
+        <HospitableSyncButton />
 
         <div className="grid grid-cols-6 gap-4">
           {Object.entries(counts).map(([k, v]) => (
