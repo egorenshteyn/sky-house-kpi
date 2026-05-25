@@ -71,6 +71,15 @@ const NAV_LINKS: { href: string; label: string; icon: (props: IconProps) => JSX.
     ),
   },
   {
+    href: "/pricing",
+    label: "Pricing",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 17l6-6 4 4 6-8M5 20h14" />
+      </svg>
+    ),
+  },
+  {
     href: "/channels",
     label: "Channels",
     icon: ({ className }) => (
