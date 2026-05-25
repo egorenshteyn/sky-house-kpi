@@ -15,6 +15,66 @@ export type HospitableSyncSummary = {
   to: string;
 };
 
+type ExistingHospitableBooking = {
+  propertyId: string | null;
+  channel: string | null;
+  status: string | null;
+  guestName: string | null;
+  guestPhone: string | null;
+  guestEmail: string | null;
+  guestLocation: string | null;
+  numAdults: number | null;
+  numChildren: number | null;
+  numPets: number | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  nights: number | null;
+  bookingCreatedDate: string | null;
+  grossRevenue: number | null;
+  cleaningFee: number | null;
+  petFee: number | null;
+  platformFees: number | null;
+  taxes: number | null;
+  netPayout: number | null;
+  avgNightlyRate: number | null;
+  tags: string | null;
+};
+
+function sameNumber(a: number | null | undefined, b: number | null | undefined) {
+  return Math.abs(Number(a || 0) - Number(b || 0)) < 0.005;
+}
+
+function sameString(a: string | null | undefined, b: string | null | undefined) {
+  return (a || "") === (b || "");
+}
+
+export function isHospitableBookingUnchanged(existing: ExistingHospitableBooking, booking: NormalizedHospitableBooking) {
+  return (
+    sameString(existing.propertyId, booking.propertyId) &&
+    sameString(existing.channel, booking.channel) &&
+    sameString(existing.status, booking.status) &&
+    sameString(existing.guestName, booking.guestName) &&
+    sameString(existing.guestPhone, booking.guestPhone) &&
+    sameString(existing.guestEmail, booking.guestEmail) &&
+    sameString(existing.guestLocation, booking.guestLocation) &&
+    sameNumber(existing.numAdults, booking.numAdults) &&
+    sameNumber(existing.numChildren, booking.numChildren) &&
+    sameNumber(existing.numPets, booking.numPets) &&
+    sameString(existing.checkIn, booking.checkIn) &&
+    sameString(existing.checkOut, booking.checkOut) &&
+    sameNumber(existing.nights, booking.nights) &&
+    sameString(existing.bookingCreatedDate, booking.bookingCreatedDate) &&
+    sameNumber(existing.grossRevenue, booking.grossRevenue) &&
+    sameNumber(existing.cleaningFee, booking.cleaningFee) &&
+    sameNumber(existing.petFee, booking.petFee) &&
+    sameNumber(existing.platformFees, booking.platformFees) &&
+    sameNumber(existing.taxes, booking.taxes) &&
+    sameNumber(existing.netPayout, booking.netPayout) &&
+    sameNumber(existing.avgNightlyRate, booking.avgNightlyRate) &&
+    sameString(existing.tags, booking.tags)
+  );
+}
+
 function defaultFrom() {
   const d = new Date();
   d.setUTCFullYear(d.getUTCFullYear() - 1);
@@ -164,13 +224,6 @@ export async function syncHospitableReservations(
   let updated = 0;
   let skipped = 0;
 
-  sqlite
-    .prepare(
-      `INSERT INTO import_batches (id, source_type, source_file, imported_at, records_created, errors, reviewed)
-       VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?)`,
-    )
-    .run(batchId, "hospitable_api", `/v2/reservations ${from}..${to}`, 0, null, 0);
-
   const rawBookings = await fetchAllHospitableReservations({ start_date: from, end_date: to, include: "guest,financials" });
 
   const tx = sqlite.transaction((items: unknown[]) => {
@@ -188,10 +241,26 @@ export async function syncHospitableReservations(
       if (booking.warnings.length) errors.push(`${booking.channelConfirmationCode}: ${booking.warnings.join(", ")}`);
 
       const existing = sqlite
-        .prepare(`SELECT id FROM bookings WHERE channel_confirmation_code = ? LIMIT 1`)
-        .get(booking.channelConfirmationCode) as { id: string } | undefined;
+        .prepare(
+          `SELECT id,
+                  property_id as propertyId, channel, status,
+                  guest_name as guestName, guest_phone as guestPhone,
+                  guest_email as guestEmail, guest_location as guestLocation,
+                  num_adults as numAdults, num_children as numChildren, num_pets as numPets,
+                  check_in as checkIn, check_out as checkOut, nights,
+                  booking_created_date as bookingCreatedDate,
+                  gross_revenue as grossRevenue, cleaning_fee as cleaningFee, pet_fee as petFee,
+                  platform_fees as platformFees, taxes, net_payout as netPayout,
+                  avg_nightly_rate as avgNightlyRate, tags
+           FROM bookings WHERE channel_confirmation_code = ? LIMIT 1`,
+        )
+        .get(booking.channelConfirmationCode) as (ExistingHospitableBooking & { id: string }) | undefined;
 
       if (existing) {
+        if (isHospitableBookingUnchanged(existing, booking)) {
+          skipped += 1;
+          continue;
+        }
         updateBooking(sqlite, booking, batchId);
         updated += 1;
       } else {
@@ -203,9 +272,21 @@ export async function syncHospitableReservations(
 
   tx(rawBookings);
 
-  sqlite
-    .prepare(`UPDATE import_batches SET records_created = ?, errors = ? WHERE id = ?`)
-    .run(created + updated, errors.length ? JSON.stringify(errors.slice(0, 50)) : null, batchId);
+  if (created + updated > 0 || errors.length > 0) {
+    sqlite
+      .prepare(
+        `INSERT INTO import_batches (id, source_type, source_file, imported_at, records_created, errors, reviewed)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?)`,
+      )
+      .run(
+        batchId,
+        "hospitable_api",
+        `/v2/reservations ${from}..${to}`,
+        created + updated,
+        errors.length ? JSON.stringify(errors.slice(0, 50)) : null,
+        0,
+      );
+  }
 
   return { batchId, fetched: rawBookings.length, created, updated, skipped, errors, from, to };
 }
