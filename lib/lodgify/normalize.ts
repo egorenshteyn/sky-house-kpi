@@ -1,6 +1,7 @@
 export type NormalizedLodgifyBooking = {
   externalId: string;
   channelConfirmationCode: string;
+  platformConfirmationCode: string | null;
   propertyId: string;
   channel: string;
   status: string;
@@ -118,6 +119,17 @@ function guestLocation(obj: unknown): string | null {
   return [city, state, country].filter(Boolean).join(", ") || null;
 }
 
+function platformConfirmationCode(sourceText: string | null): string | null {
+  if (!sourceText) return null;
+  try {
+    const parsed = JSON.parse(sourceText) as unknown;
+    return firstString(parsed, ["confirmationCode", "confirmation_code"]);
+  } catch {
+    const match = sourceText.match(/["']confirmationCode["']\s*:\s*["']([^"']+)["']/i);
+    return match?.[1]?.trim() || null;
+  }
+}
+
 export function normalizeLodgifyBooking(obj: unknown): NormalizedLodgifyBooking | null {
   const warnings: string[] = [];
   const externalId = firstString(obj, ["id", "booking_id", "reservation_id"]);
@@ -148,6 +160,7 @@ export function normalizeLodgifyBooking(obj: unknown): NormalizedLodgifyBooking 
   return {
     externalId,
     channelConfirmationCode: `lodgify:${externalId}`,
+    platformConfirmationCode: platformConfirmationCode(sourceText),
     propertyId: APP_PROPERTY_ID,
     channel,
     status,

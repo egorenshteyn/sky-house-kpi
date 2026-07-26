@@ -15,6 +15,34 @@ export type LodgifySyncSummary = {
   to: string;
 };
 
+type CrossSourceBooking = {
+  internalNotes: string | null;
+};
+
+function hospitablePlatformConfirmationCode(internalNotes: string | null) {
+  return internalNotes?.match(/^Imported from Hospitable reservation (.+)\.$/)?.[1]?.trim() || null;
+}
+
+export function hasCanonicalHospitableBooking(sqlite: Database, booking: NormalizedLodgifyBooking) {
+  if (!booking.platformConfirmationCode || !booking.guestName) return false;
+
+  const candidates = sqlite
+    .prepare(
+      `SELECT internal_notes AS internalNotes
+       FROM bookings
+       WHERE property_id = ?
+         AND channel_confirmation_code LIKE 'hospitable:%'
+         AND lower(trim(guest_name)) = lower(trim(?))
+         AND check_in = ?
+         AND check_out = ?`,
+    )
+    .all(booking.propertyId, booking.guestName, booking.checkIn, booking.checkOut) as CrossSourceBooking[];
+
+  return candidates.some(
+    (candidate) => hospitablePlatformConfirmationCode(candidate.internalNotes) === booking.platformConfirmationCode,
+  );
+}
+
 function defaultFrom() {
   const d = new Date();
   d.setUTCFullYear(d.getUTCFullYear() - 1);
@@ -186,6 +214,11 @@ export async function syncLodgifyBookings(
         continue;
       }
       if (booking.warnings.length) errors.push(`${booking.channelConfirmationCode}: ${booking.warnings.join(", ")}`);
+
+      if (hasCanonicalHospitableBooking(sqlite, booking)) {
+        skipped += 1;
+        continue;
+      }
 
       const existing = sqlite
         .prepare(`SELECT id FROM bookings WHERE channel_confirmation_code = ? LIMIT 1`)

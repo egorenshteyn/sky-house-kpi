@@ -1,6 +1,7 @@
 export type NormalizedHospitableBooking = {
   externalId: string;
   channelConfirmationCode: string;
+  platformConfirmationCode: string | null;
   propertyId: string;
   channel: string;
   status: string;
@@ -180,6 +181,7 @@ export function normalizeHospitableBooking(obj: unknown): NormalizedHospitableBo
   return {
     externalId,
     channelConfirmationCode: `hospitable:${externalId}`,
+    platformConfirmationCode: code,
     propertyId: APP_PROPERTY_ID,
     channel,
     status,

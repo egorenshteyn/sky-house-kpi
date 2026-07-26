@@ -40,6 +40,37 @@ type ExistingHospitableBooking = {
   tags: string | null;
 };
 
+type CrossSourceBooking = {
+  id: string;
+  internalNotes: string | null;
+};
+
+function lodgifyPlatformConfirmationCode(internalNotes: string | null) {
+  return internalNotes?.match(/["']confirmationCode["']\s*:\s*["']([^"']+)["']/i)?.[1]?.trim() || null;
+}
+
+export function findLegacyLodgifyDuplicateId(sqlite: Database, booking: NormalizedHospitableBooking) {
+  if (!booking.platformConfirmationCode || !booking.guestName) return null;
+
+  const candidates = sqlite
+    .prepare(
+      `SELECT id, internal_notes AS internalNotes
+       FROM bookings
+       WHERE property_id = ?
+         AND status = 'cancelled'
+         AND channel_confirmation_code LIKE 'lodgify:%'
+         AND lower(trim(guest_name)) = lower(trim(?))
+         AND check_in = ?
+         AND check_out = ?`,
+    )
+    .all(booking.propertyId, booking.guestName, booking.checkIn, booking.checkOut) as CrossSourceBooking[];
+
+  const exactMatches = candidates.filter(
+    (candidate) => lodgifyPlatformConfirmationCode(candidate.internalNotes) === booking.platformConfirmationCode,
+  );
+  return exactMatches.length === 1 ? exactMatches[0].id : null;
+}
+
 function sameNumber(a: number | null | undefined, b: number | null | undefined) {
   return Math.abs(Number(a || 0) - Number(b || 0)) < 0.005;
 }
@@ -153,7 +184,7 @@ function insertBooking(sqlite: Database, booking: NormalizedHospitableBooking, b
     );
 }
 
-function updateBooking(sqlite: Database, booking: NormalizedHospitableBooking, batchId: string) {
+function updateBooking(sqlite: Database, booking: NormalizedHospitableBooking, batchId: string, existingId: string) {
   const now = new Date().toISOString();
   const guestId = findOrCreateGuest(sqlite, {
     guestName: booking.guestName,
@@ -166,7 +197,7 @@ function updateBooking(sqlite: Database, booking: NormalizedHospitableBooking, b
   sqlite
     .prepare(
       `UPDATE bookings SET
-        property_id = ?, channel = ?, status = ?, guest_id = ?,
+        property_id = ?, channel = ?, channel_confirmation_code = ?, status = ?, guest_id = ?,
         guest_name = ?, guest_phone = ?, guest_email = ?, guest_location = ?,
         num_adults = ?, num_children = ?, num_pets = ?, check_in = ?, check_out = ?, nights = ?,
         booking_created_date = ?, gross_revenue = ?, cleaning_fee = ?, pet_fee = ?, platform_fees = ?,
@@ -177,11 +208,12 @@ function updateBooking(sqlite: Database, booking: NormalizedHospitableBooking, b
           ELSE internal_notes
         END,
         tags = ?, import_confidence = ?, import_batch_id = ?, updated_at = ?
-       WHERE channel_confirmation_code = ?`,
+       WHERE id = ?`,
     )
     .run(
       booking.propertyId,
       booking.channel,
+      booking.channelConfirmationCode,
       booking.status,
       guestId,
       booking.guestName,
@@ -207,7 +239,7 @@ function updateBooking(sqlite: Database, booking: NormalizedHospitableBooking, b
       1,
       batchId,
       now,
-      booking.channelConfirmationCode,
+      existingId,
     );
 }
 
@@ -261,11 +293,17 @@ export async function syncHospitableReservations(
           skipped += 1;
           continue;
         }
-        updateBooking(sqlite, booking, batchId);
+        updateBooking(sqlite, booking, batchId, existing.id);
         updated += 1;
       } else {
-        insertBooking(sqlite, booking, batchId);
-        created += 1;
+        const legacyDuplicateId = findLegacyLodgifyDuplicateId(sqlite, booking);
+        if (legacyDuplicateId) {
+          updateBooking(sqlite, booking, batchId, legacyDuplicateId);
+          updated += 1;
+        } else {
+          insertBooking(sqlite, booking, batchId);
+          created += 1;
+        }
       }
     }
   });

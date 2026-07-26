@@ -35,6 +35,21 @@ export function formatDateFull(iso: string): string {
   });
 }
 
+export function formatBookingDate(iso: string): string {
+  if (!iso) return "—";
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const d = dateOnly
+    ? new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])))
+    : new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function channelBadgeClass(channel: string): string {
   const c = (channel || "").toLowerCase().replace(/[^a-z]/g, "");
   if (c === "airbnb") return "badge-airbnb";

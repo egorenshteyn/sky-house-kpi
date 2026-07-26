@@ -5,6 +5,7 @@ import type { NormalizedHospitableBooking } from "../lib/hospitable/normalize";
 const booking: NormalizedHospitableBooking = {
   externalId: "res-1",
   channelConfirmationCode: "hospitable:res-1",
+  platformConfirmationCode: "ABC",
   propertyId: "skyhouse-dillon-beach",
   channel: "Airbnb",
   status: "booked",

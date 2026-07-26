@@ -1,7 +1,7 @@
 import SubHeader from "@/components/SubHeader";
 import Link from "next/link";
 import { getAllBookings } from "@/lib/queries";
-import { formatDateShort, formatMoney, channelBadgeClass } from "@/lib/format";
+import { formatBookingDate, formatMoney, channelBadgeClass } from "@/lib/format";
 import BookingsFilters from "./BookingsFilters";
 
 export const dynamic = "force-dynamic";
@@ -97,10 +97,10 @@ export default function BookingsPage({
                     </td>
                     <td className="px-5 py-3 text-xs text-gray-500">{b.status || "—"}</td>
                     <td className="px-5 py-3 text-gray-600 font-mono text-xs">
-                      {formatDateShort(b.checkIn || "")}
+                      {formatBookingDate(b.checkIn || "")}
                     </td>
                     <td className="px-5 py-3 text-gray-600 font-mono text-xs">
-                      {formatDateShort(b.checkOut || "")}
+                      {formatBookingDate(b.checkOut || "")}
                     </td>
                     <td className="px-5 py-3 font-mono">{b.nights || 0}</td>
                     <td className="px-5 py-3 text-right font-mono font-semibold">
