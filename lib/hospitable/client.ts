@@ -13,6 +13,12 @@ export type HospitableListResponse<T = unknown> = {
   } | null;
 };
 
+export type HospitableCalendarResponse = {
+  data?: {
+    days?: unknown[];
+  } | null;
+};
+
 export class HospitableError extends Error {
   constructor(
     message: string,
@@ -77,6 +83,8 @@ export function createHospitableClient(options: HospitableClientOptions = {}) {
     request,
     getProperties: () => request<HospitableListResponse>("/properties"),
     getReservations: (query: HospitableQuery = {}) => request<HospitableListResponse>("/reservations", query),
+    getPropertyCalendar: (propertyId: string, query: HospitableQuery = {}) =>
+      request<HospitableCalendarResponse>(`/properties/${encodeURIComponent(propertyId)}/calendar`, query),
   };
 }
 
@@ -123,4 +131,60 @@ export async function fetchAllHospitableReservations(query: HospitableQuery = {}
   }
 
   return all;
+}
+
+export type HospitablePropertyCalendar = {
+  propertyId: string;
+  days: unknown[];
+};
+
+function isValidCalendarDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function isValidCalendarDay(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const day = value as Record<string, unknown>;
+  if (!isValidCalendarDate(day.date)) return false;
+  if (!day.status || typeof day.status !== "object" || Array.isArray(day.status)) return false;
+  const status = day.status as Record<string, unknown>;
+  return typeof status.available === "boolean" && typeof status.reason === "string";
+}
+
+export async function fetchAllHospitableCalendars(query: HospitableQuery = {}): Promise<HospitablePropertyCalendar[]> {
+  const client = createHospitableClient();
+  const propertyIds = Array.isArray(query["properties[]"])
+    ? (query["properties[]"] as string[])
+    : await fetchHospitablePropertyIds();
+
+  if (propertyIds.length === 0) {
+    throw new HospitableError("No Hospitable properties found for this token.");
+  }
+
+  return Promise.all(
+    propertyIds.map(async (propertyId) => {
+      const response = await client.getPropertyCalendar(propertyId, {
+        start_date: query.start_date,
+        end_date: query.end_date,
+      });
+      const days = response.data?.days;
+      if (!Array.isArray(days)) {
+        throw new HospitableError(
+          `Hospitable calendar response for property ${propertyId} is missing a valid data.days array.`,
+        );
+      }
+      const malformedDayIndex = days.findIndex((day) => !isValidCalendarDay(day));
+      if (malformedDayIndex !== -1) {
+        throw new HospitableError(
+          `Hospitable calendar response for property ${propertyId} contains a malformed day at index ${malformedDayIndex}.`,
+        );
+      }
+      return {
+        propertyId,
+        days,
+      };
+    }),
+  );
 }

@@ -7,6 +7,12 @@ type SyncResult = {
   created: number;
   updated: number;
   skipped: number;
+  calendarDaysFetched: number;
+  blocksFound: number;
+  blocksCreated: number;
+  blocksUpdated: number;
+  blocksSkipped: number;
+  blocksRemoved: number;
   errors: string[];
   from: string;
   to: string;
@@ -44,7 +50,7 @@ export default function HospitableSyncButton() {
         <div>
           <h3 className="text-sm font-semibold text-[#161616]">Hospitable Sync</h3>
           <p className="mt-1 text-xs text-gray-500">
-            Pull reservations from Hospitable into bookings, calendar, dashboard, and CRM.
+            Pull reservations and blocked calendar dates from Hospitable. Blocks appear on the calendar but never count as stays or revenue.
           </p>
         </div>
         <button
@@ -53,17 +59,22 @@ export default function HospitableSyncButton() {
           disabled={loading}
           className="rounded-md bg-[#0f62fe] px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Syncing…" : "Sync reservations from Hospitable"}
+          {loading ? "Syncing…" : "Sync reservations & blocks"}
         </button>
       </div>
 
       {result && (
         <div className="mt-4 grid grid-cols-5 gap-3 text-xs">
           {[
-            ["Fetched", result.fetched],
-            ["Created", result.created],
-            ["Updated", result.updated],
-            ["Skipped", result.skipped],
+            ["Reservations", result.fetched],
+            ["Stays created", result.created],
+            ["Stays updated", result.updated],
+            ["Blocks found", result.blocksFound],
+            ["Calendar days", result.calendarDaysFetched],
+            ["Blocks created", result.blocksCreated],
+            ["Blocks updated", result.blocksUpdated],
+            ["Blocks removed", result.blocksRemoved],
+            ["Unchanged", result.skipped + result.blocksSkipped],
             ["Errors", result.errors.length],
           ].map(([label, value]) => (
             <div key={label} className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
@@ -72,7 +83,7 @@ export default function HospitableSyncButton() {
             </div>
           ))}
           <div className="col-span-5 text-[11px] text-gray-500">
-            Synced {result.from} → {result.to}. Batch {result.batchId.slice(0, 8)}.
+            Synced reservations and Hospitable calendar blocks for {result.from} → {result.to}. Batch {result.batchId.slice(0, 8)}.
           </div>
         </div>
       )}

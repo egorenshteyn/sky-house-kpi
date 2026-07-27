@@ -1,6 +1,7 @@
 import SubHeader from "@/components/SubHeader";
 import { getAllBookings } from "@/lib/queries";
 import { channelColor, formatMoney } from "@/lib/format";
+import { getCalendarMonthSummary, isCalendarBlock } from "@/lib/calendar-summary";
 import Link from "next/link";
 
 const MONTH_NAMES = [
@@ -8,6 +9,7 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const BLOCK_COLOR = "#6f6f6f";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +50,8 @@ export default function CalendarPage({
     return bookings.filter((b) => b.checkIn === iso);
   }
 
-  const monthBookings = bookings.filter(
-    (b) => b.checkIn && b.checkIn.startsWith(`${year}-${String(month).padStart(2, "0")}`),
-  );
-  const monthRevenue = monthBookings.reduce((a, b) => a + (b.grossRevenue || 0), 0);
+  const { stays: monthStays, blocks: monthBlocks, revenue: monthRevenue } =
+    getCalendarMonthSummary(bookings, year, month);
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
@@ -60,7 +60,7 @@ export default function CalendarPage({
     <>
       <SubHeader
         title="Booking Calendar"
-        subtitle={`${MONTH_NAMES[month - 1]} ${year} · ${monthBookings.length} stays · ${formatMoney(monthRevenue, { compact: true })}`}
+        subtitle={`${MONTH_NAMES[month - 1]} ${year} · ${monthStays.length} stays · ${monthBlocks.length} blocks · ${formatMoney(monthRevenue, { compact: true })}`}
         actions={
           <div className="flex items-center gap-2">
             <Link
@@ -125,17 +125,24 @@ export default function CalendarPage({
                     {cell.date.getUTCDate()}
                   </div>
                   <div className="space-y-1">
-                    {starting.map((b) => (
-                      <Link
-                        key={b.id}
-                        href={`/bookings/${b.id}`}
-                        className="block text-xs px-1.5 py-0.5 rounded text-white truncate"
-                        style={{ background: channelColor(b.channel || "") }}
-                        title={`${b.guestName} — ${b.nights} nights — ${formatMoney(b.grossRevenue || 0)}`}
-                      >
-                        {b.guestName}
-                      </Link>
-                    ))}
+                    {starting.map((b) => {
+                      const isBlock = isCalendarBlock(b.status);
+                      return (
+                        <Link
+                          key={b.id}
+                          href={`/bookings/${b.id}`}
+                          className="block text-xs px-1.5 py-0.5 rounded text-white truncate"
+                          style={{ background: isBlock ? BLOCK_COLOR : channelColor(b.channel || "") }}
+                          title={
+                            isBlock
+                              ? `${b.guestName || "Blocked"} — ${b.nights} blocked nights`
+                              : `${b.guestName} — ${b.nights} nights — ${formatMoney(b.grossRevenue || 0)}`
+                          }
+                        >
+                          {isBlock ? b.guestName || "Blocked" : b.guestName}
+                        </Link>
+                      );
+                    })}
                     {covering.length === 0 && (
                       <div className="text-[10px] text-gray-300">—</div>
                     )}
@@ -145,7 +152,7 @@ export default function CalendarPage({
                           <div
                             key={b.id}
                             className="h-1 rounded-full"
-                            style={{ background: channelColor(b.channel || "") }}
+                            style={{ background: isCalendarBlock(b.status) ? BLOCK_COLOR : channelColor(b.channel || "") }}
                           />
                         ))}
                       </div>
@@ -168,6 +175,10 @@ export default function CalendarPage({
               {c}
             </span>
           ))}
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm" style={{ background: BLOCK_COLOR }} />
+            Hospitable block
+          </span>
         </div>
       </div>
     </>
