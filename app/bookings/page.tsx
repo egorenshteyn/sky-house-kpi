@@ -3,29 +3,33 @@ import Link from "next/link";
 import { getAllBookings } from "@/lib/queries";
 import { formatBookingDate, formatMoney, channelBadgeClass } from "@/lib/format";
 import BookingsFilters from "./BookingsFilters";
+import BookingsTableHeader from "./BookingsTableHeader";
+import { filterAndSortBookings, parseBookingSort } from "@/lib/booking-list";
 
 export const dynamic = "force-dynamic";
 
 export default function BookingsPage({
   searchParams,
 }: {
-  searchParams?: { q?: string; channel?: string; status?: string };
+  searchParams?: {
+    q?: string;
+    channel?: string;
+    status?: string;
+    sort?: string;
+    direction?: string;
+  };
 }) {
-  const q = (searchParams?.q || "").toLowerCase();
+  const q = searchParams?.q || "";
   const channel = searchParams?.channel || "";
   const status = searchParams?.status || "";
+  const { sortKey, direction } = parseBookingSort(searchParams || {});
 
-  let bookings = getAllBookings();
-  if (q) {
-    bookings = bookings.filter(
-      (b) =>
-        (b.guestName || "").toLowerCase().includes(q) ||
-        (b.guestPhone || "").toLowerCase().includes(q) ||
-        (b.guestEmail || "").toLowerCase().includes(q),
-    );
-  }
-  if (channel) bookings = bookings.filter((b) => b.channel === channel);
-  if (status) bookings = bookings.filter((b) => b.status === status);
+  const bookings = filterAndSortBookings(
+    getAllBookings(),
+    { q, channel, status },
+    sortKey,
+    direction,
+  );
 
   const total = bookings.reduce((acc, b) => acc + (b.grossRevenue || 0), 0);
 
@@ -56,23 +60,16 @@ export default function BookingsPage({
               .
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
-                  <th className="px-5 py-2.5 font-medium">Guest</th>
-                  <th className="px-5 py-2.5 font-medium">Phone</th>
-                  <th className="px-5 py-2.5 font-medium">Channel</th>
-                  <th className="px-5 py-2.5 font-medium">Status</th>
-                  <th className="px-5 py-2.5 font-medium">Check-in</th>
-                  <th className="px-5 py-2.5 font-medium">Check-out</th>
-                  <th className="px-5 py-2.5 font-medium">Nts</th>
-                  <th className="px-5 py-2.5 font-medium text-right">Revenue</th>
-                  <th className="px-5 py-2.5 font-medium text-right">ADR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {bookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-sm">
+                <BookingsTableHeader
+                  activeSort={sortKey}
+                  direction={direction}
+                  searchParams={{ q, channel, status }}
+                />
+                <tbody className="divide-y divide-gray-100">
+                  {bookings.map((b) => (
+                    <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3">
                       <Link
                         href={`/bookings/${b.id}`}
@@ -80,9 +77,6 @@ export default function BookingsPage({
                       >
                         {b.guestName || "—"}
                       </Link>
-                    </td>
-                    <td className="px-5 py-3 text-gray-600 font-mono text-xs">
-                      {b.guestPhone || "—"}
                     </td>
                     <td className="px-5 py-3">
                       {b.channel ? (
@@ -96,6 +90,9 @@ export default function BookingsPage({
                       )}
                     </td>
                     <td className="px-5 py-3 text-xs text-gray-500">{b.status || "—"}</td>
+                    <td className="px-5 py-3 text-gray-600 font-mono text-xs whitespace-nowrap">
+                      {formatBookingDate(b.bookingCreatedDate || "")}
+                    </td>
                     <td className="px-5 py-3 text-gray-600 font-mono text-xs">
                       {formatBookingDate(b.checkIn || "")}
                     </td>
@@ -109,10 +106,11 @@ export default function BookingsPage({
                     <td className="px-5 py-3 text-right font-mono text-gray-400">
                       {formatMoney(b.avgNightlyRate || 0)}
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
