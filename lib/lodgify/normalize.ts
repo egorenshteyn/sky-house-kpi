@@ -101,13 +101,33 @@ function normalizeChannel(source: string | null, sourceText: string | null): str
 
 function normalizeStatus(rawStatus: string | null, obj: unknown): string {
   const status = (rawStatus || "").toLowerCase();
+  const quoteStatus = (firstString(obj, ["quote.status"]) || "").toLowerCase();
+  const amountPaid = firstNumber(obj, ["amount_paid"]);
+  const externalBooking = get(obj, "external_booking");
+  const hasExternalBooking = externalBooking !== null && externalBooking !== undefined && externalBooking !== "";
   const isUnavailable = get(obj, "is_unavailable") === true;
   const isDeleted = get(obj, "is_deleted") === true;
   const canceledAt = firstString(obj, ["canceled_at", "cancelled_at"]);
 
   if (isDeleted || canceledAt || status.includes("cancel")) return "cancelled";
   if (status.includes("declin") || status.includes("reject")) return "cancelled";
+  if (
+    quoteStatus.includes("expir") ||
+    quoteStatus.includes("cancel") ||
+    quoteStatus.includes("declin") ||
+    quoteStatus.includes("reject")
+  ) {
+    return "cancelled";
+  }
   if (status.includes("tentative") || status.includes("inquir") || status.includes("quote")) return "inquiry";
+  if (
+    status === "open" &&
+    amountPaid <= 0 &&
+    !hasExternalBooking &&
+    (!quoteStatus || quoteStatus === "open" || quoteStatus.includes("pending"))
+  ) {
+    return "inquiry";
+  }
   if (isUnavailable) return "owner_block";
   return "booked";
 }
@@ -149,8 +169,13 @@ export function normalizeLodgifyBooking(obj: unknown): NormalizedLodgifyBooking 
   const channel = normalizeChannel(source, sourceText);
   const status = normalizeStatus(rawStatus, obj);
   const nights = nightsBetween(checkIn, checkOut);
-  const grossRevenue = firstNumber(obj, ["total_amount", "quote.total", "quote.total_amount", "amount"]);
-  const netPayout = firstNumber(obj, ["amount_paid", "quote.net_amount", "net_payout"]) || grossRevenue;
+  const isRevenueBooking = status === "booked" || status === "completed";
+  const grossRevenue = isRevenueBooking
+    ? firstNumber(obj, ["total_amount", "quote.total", "quote.total_amount", "amount"])
+    : 0;
+  const netPayout = isRevenueBooking
+    ? firstNumber(obj, ["amount_paid", "quote.net_amount", "net_payout"]) || grossRevenue
+    : 0;
   const adults = firstNumber(firstRoom, ["guest_breakdown.adults", "adults", "people"]);
   const children = firstNumber(firstRoom, ["guest_breakdown.children", "children"]);
   const pets = firstNumber(firstRoom, ["guest_breakdown.pets", "pets"]);
