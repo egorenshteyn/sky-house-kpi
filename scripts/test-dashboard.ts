@@ -8,7 +8,9 @@ import {
   sumWindow,
   availableNightsForPeriod,
 } from "../lib/dashboard";
+import { getMonthlyForYear } from "../lib/queries";
 import type { MonthlyAgg } from "../lib/queries";
+import { getSqlite } from "../lib/db";
 
 let passed = 0;
 let failed = 0;
@@ -25,6 +27,10 @@ function check(label: string, cond: boolean, detail?: string) {
 
 function eq<T>(label: string, actual: T, expected: T) {
   check(label, actual === expected, `expected ${String(expected)} got ${String(actual)}`);
+}
+
+function approx(label: string, actual: number, expected: number) {
+  check(label, Math.abs(actual - expected) < 0.005, `expected ${expected.toFixed(2)} got ${actual.toFixed(2)}`);
 }
 
 console.log("→ dashboard helpers");
@@ -89,6 +95,54 @@ eq("ALL rows count", allRows.length, 4);
 const allNights = availableNightsForPeriod("ALL", today, months);
 eq("ALL available nights", allNights, 365 + 365); // 2025+2026
 
+console.log("\n→ dashboard monthly revenue source");
+
+const dashboard2026 = getMonthlyForYear(2026);
+const dashboard2026JanJul = dashboard2026.filter((m) => m.month <= 7);
+const dashboard2026Totals = sumWindow(dashboard2026);
+const dashboard2026JanJulTotals = sumWindow(dashboard2026JanJul);
+
+approx("2026 Jan-Jul revenue uses real bookings by check-in month", dashboard2026JanJulTotals.bookedRevenue, 127333.44);
+approx("2026 full-year revenue uses real bookings by check-in month", dashboard2026Totals.bookedRevenue, 190816.62);
+approx("2026 Airbnb channel revenue matches booking-derived total", dashboard2026Totals.channels.Airbnb, 190816.62);
+approx("2026 channel breakdown agrees with total revenue", channelSum(dashboard2026Totals.channels), dashboard2026Totals.bookedRevenue);
+
+const imported2026 = getSqlite()
+  .prepare(
+    `SELECT
+       ROUND(SUM(CASE WHEN month <= 7 THEN COALESCE(booked_revenue, 0) ELSE 0 END), 2) AS janJul,
+       ROUND(SUM(COALESCE(booked_revenue, 0)), 2) AS fullYear
+     FROM monthly_aggregates
+     WHERE year = 2026`,
+  )
+  .get() as { janJul: number; fullYear: number };
+approx("fixture still contains stale imported 2026 Jan-Jul revenue", imported2026.janJul, 74945);
+check(
+  "dashboard no longer exposes stale imported 2026 revenue",
+  Math.abs(dashboard2026JanJulTotals.bookedRevenue - imported2026.janJul) > 0.005,
+  `got ${dashboard2026JanJulTotals.bookedRevenue.toFixed(2)}`,
+);
+
+const dashboard2025 = getMonthlyForYear(2025);
+const raw2025 = getSqlite()
+  .prepare(
+    `SELECT id, year, month, total_stays as totalStays, total_nights as totalNights,
+            occupancy_rate as occupancyRate, booked_revenue as bookedRevenue,
+            cumulative_annual_revenue as cumulativeAnnualRevenue,
+            total_cumulative_revenue as totalCumulativeRevenue,
+            revenue_direct as revenueDirect, revenue_airbnb as revenueAirbnb,
+            revenue_luxe as revenueLuxe, revenue_vrbo as revenueVrbo,
+            revenue_tripadvisor as revenueTripadvisor,
+            revenue_bookingcom as revenueBookingcom,
+            revenue_stayone as revenueStayone, notes
+     FROM monthly_aggregates
+     WHERE year = 2025
+     ORDER BY year, month`,
+  )
+  .all() as MonthlyAgg[];
+eq("pre-2026 monthly row count remains imported aggregate count", dashboard2025.length, raw2025.length);
+approx("pre-2026 revenue remains imported monthly aggregate revenue", sumWindow(dashboard2025).bookedRevenue, sumWindow(raw2025).bookedRevenue);
+
 console.log(`\n${passed} passed, ${failed} failed.`);
 if (failed > 0) process.exit(1);
 
@@ -113,4 +167,8 @@ function fakeMonth(year: number, month: number, partial: Partial<MonthlyAgg>): M
     notes: null,
     ...partial,
   };
+}
+
+function channelSum(channels: ReturnType<typeof sumWindow>["channels"]): number {
+  return Object.values(channels).reduce((acc, value) => acc + value, 0);
 }

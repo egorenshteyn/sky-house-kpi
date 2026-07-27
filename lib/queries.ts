@@ -41,7 +41,7 @@ export type BookingDetail = BookingRow & {
 
 export function getAllMonthly(): MonthlyAgg[] {
   const db = getSqlite();
-  return db
+  const months = db
     .prepare(
       `SELECT id, year, month, total_stays as totalStays, total_nights as totalNights,
               occupancy_rate as occupancyRate, booked_revenue as bookedRevenue,
@@ -56,10 +56,124 @@ export function getAllMonthly(): MonthlyAgg[] {
        ORDER BY year, month`,
     )
     .all() as MonthlyAgg[];
+
+  return applyBookingDerivedRevenueFor2026(months);
 }
 
 export function getMonthlyForYear(year: number): MonthlyAgg[] {
   return getAllMonthly().filter((m) => m.year === year);
+}
+
+type BookingRevenueByMonth = {
+  month: number;
+  channel: string | null;
+  revenue: number;
+};
+
+type MonthlyRevenueFields = Pick<
+  MonthlyAgg,
+  | "bookedRevenue"
+  | "revenueDirect"
+  | "revenueAirbnb"
+  | "revenueLuxe"
+  | "revenueVrbo"
+  | "revenueTripadvisor"
+  | "revenueBookingcom"
+  | "revenueStayone"
+>;
+
+function applyBookingDerivedRevenueFor2026(months: MonthlyAgg[]): MonthlyAgg[] {
+  const db = getSqlite();
+  const rows = db
+    .prepare(
+      `SELECT
+         CAST(strftime('%m', check_in) AS INTEGER) AS month,
+         channel,
+         COALESCE(SUM(COALESCE(gross_revenue, 0)), 0) AS revenue
+       FROM bookings
+       WHERE check_in >= '2026-01-01'
+         AND check_in < '2027-01-01'
+         AND status IN ('booked', 'completed')
+       GROUP BY month, channel`,
+    )
+    .all() as BookingRevenueByMonth[];
+
+  const revenueByMonth = new Map<number, MonthlyRevenueFields>();
+
+  for (const row of rows) {
+    if (!revenueByMonth.has(row.month)) {
+      revenueByMonth.set(row.month, {
+        bookedRevenue: 0,
+        revenueDirect: 0,
+        revenueAirbnb: 0,
+        revenueLuxe: 0,
+        revenueVrbo: 0,
+        revenueTripadvisor: 0,
+        revenueBookingcom: 0,
+        revenueStayone: 0,
+      });
+    }
+
+    const monthRevenue = revenueByMonth.get(row.month)!;
+    const revenue = row.revenue || 0;
+    monthRevenue.bookedRevenue += revenue;
+
+    switch (normalizeRevenueChannel(row.channel)) {
+      case "airbnb":
+        monthRevenue.revenueAirbnb += revenue;
+        break;
+      case "vrbo":
+        monthRevenue.revenueVrbo += revenue;
+        break;
+      case "luxe":
+        monthRevenue.revenueLuxe += revenue;
+        break;
+      case "tripadvisor":
+        monthRevenue.revenueTripadvisor += revenue;
+        break;
+      case "bookingcom":
+        monthRevenue.revenueBookingcom += revenue;
+        break;
+      case "stayone":
+        monthRevenue.revenueStayone += revenue;
+        break;
+      case "direct":
+      default:
+        monthRevenue.revenueDirect += revenue;
+        break;
+    }
+  }
+
+  return months.map((month) => {
+    if (month.year !== 2026) return month;
+
+    return {
+      ...month,
+      ...(
+        revenueByMonth.get(month.month) || {
+          bookedRevenue: 0,
+          revenueDirect: 0,
+          revenueAirbnb: 0,
+          revenueLuxe: 0,
+          revenueVrbo: 0,
+          revenueTripadvisor: 0,
+          revenueBookingcom: 0,
+          revenueStayone: 0,
+        }
+      ),
+    };
+  });
+}
+
+function normalizeRevenueChannel(channel: string | null): string {
+  const normalized = (channel || "direct").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (normalized === "airbnb") return "airbnb";
+  if (normalized === "vrbo" || normalized === "homeaway") return "vrbo";
+  if (normalized === "luxe") return "luxe";
+  if (normalized === "tripadvisor") return "tripadvisor";
+  if (normalized === "bookingcom") return "bookingcom";
+  if (normalized === "stayone") return "stayone";
+  return "direct";
 }
 
 export function getYearTotals(year: number) {
