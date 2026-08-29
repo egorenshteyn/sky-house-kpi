@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { isPublicStandaloneRoute } from "@/lib/publicRoutes";
 
 type IconProps = { className?: string };
 
@@ -129,7 +130,7 @@ const NAV_LINKS: { href: string; label: string; icon: (props: IconProps) => JSX.
 
 export default function Header() {
   const pathname = usePathname();
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || isPublicStandaloneRoute(pathname)) return null;
 
   return (
     <aside className="sidebar group fixed top-0 left-0 z-40 h-screen bg-[#161616] text-white flex flex-col overflow-hidden">

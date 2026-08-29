@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { isPublicStandaloneRoute } from "@/lib/publicRoutes";
 
 const TYPES = [
   "note",
@@ -33,7 +34,7 @@ export default function AddContextFab() {
     }
   }, [open]);
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || isPublicStandaloneRoute(pathname)) return null;
 
   async function submit() {
     if (!content.trim()) return;
