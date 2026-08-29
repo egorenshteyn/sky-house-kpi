@@ -1,9 +1,7 @@
 export const PUBLIC_STANDALONE_ROUTES = ["/dillon-beach-revenue-estimator"] as const;
 
 export function isPublicStandaloneRoute(pathname: string) {
-  return PUBLIC_STANDALONE_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+  return PUBLIC_STANDALONE_ROUTES.some((route) => pathname === route);
 }
 
 export function isPublicRoute(pathname: string) {

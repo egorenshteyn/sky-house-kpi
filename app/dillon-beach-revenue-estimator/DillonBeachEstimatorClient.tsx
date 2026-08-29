@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   calculateDillonBeachEstimate,
   type BeachAccess,
@@ -145,6 +145,8 @@ export default function DillonBeachEstimatorClient() {
   const [result, setResult] = useState<DillonBeachEstimatorOutput | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const hasFocusedStep = useRef(false);
   const currentStep = steps[stepIndex].key;
   const emailIsValid = isValidOptionalEmail(input.email || "");
   const showEmailError = (input.email || "").trim().length > 0 && !emailIsValid;
@@ -162,6 +164,15 @@ export default function DillonBeachEstimatorClient() {
     ],
     [input],
   );
+
+  useEffect(() => {
+    if (!hasFocusedStep.current) {
+      hasFocusedStep.current = true;
+      return;
+    }
+
+    stepHeadingRef.current?.focus({ preventScroll: true });
+  }, [stepIndex]);
 
   function update<K extends keyof DillonBeachEstimatorInput>(key: K, value: DillonBeachEstimatorInput[K]) {
     setInput((current) => ({ ...current, [key]: value }));
@@ -242,7 +253,11 @@ export default function DillonBeachEstimatorClient() {
               <h2 id="form-title">Build your estimate</h2>
               <ol className={styles.steps}>
                 {steps.map((step, index) => (
-                  <li key={step.key} className={index === stepIndex ? styles.stepActive : ""}>
+                  <li
+                    key={step.key}
+                    className={index === stepIndex ? styles.stepActive : ""}
+                    aria-current={index === stepIndex ? "step" : undefined}
+                  >
                     <span>{index + 1}</span>
                     {step.label}
                   </li>
@@ -258,7 +273,7 @@ export default function DillonBeachEstimatorClient() {
                 <div className={styles.formStep}>
                   <div>
                     <p className={styles.eyebrow}>About you</p>
-                    <h2>A few basics</h2>
+                    <h2 ref={stepHeadingRef} tabIndex={-1}>A few basics</h2>
                     <p>First name personalizes the report. Email is only used to prefill your own mail app.</p>
                   </div>
                   <label className={styles.field}>
@@ -302,7 +317,7 @@ export default function DillonBeachEstimatorClient() {
                 <div className={styles.formStep}>
                   <div>
                     <p className={styles.eyebrow}>Property</p>
-                    <h2>Size, fit, and positioning</h2>
+                    <h2 ref={stepHeadingRef} tabIndex={-1}>Size, fit, and positioning</h2>
                   </div>
                   <div className={styles.numberGrid}>
                     <label className={styles.field}>
@@ -360,7 +375,7 @@ export default function DillonBeachEstimatorClient() {
                 <div className={styles.formStep}>
                   <div>
                     <p className={styles.eyebrow}>Features</p>
-                    <h2>Coastal demand drivers</h2>
+                    <h2 ref={stepHeadingRef} tabIndex={-1}>Coastal demand drivers</h2>
                   </div>
                   <RadioGroup<OceanView>
                     legend="Ocean view quality"
@@ -417,7 +432,7 @@ export default function DillonBeachEstimatorClient() {
                 <div className={styles.formStep}>
                   <div>
                     <p className={styles.eyebrow}>Review</p>
-                    <h2>Ready to generate</h2>
+                    <h2 ref={stepHeadingRef} tabIndex={-1}>Ready to generate</h2>
                     <p>Review the inputs below, then generate a deterministic estimate.</p>
                   </div>
                   <div className={styles.summaryGrid}>
