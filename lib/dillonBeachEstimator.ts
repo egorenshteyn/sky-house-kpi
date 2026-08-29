@@ -97,6 +97,15 @@ const ADR_BY_BEDROOMS: Record<number, number> = {
   6: 1780,
 };
 
+const PAID_OCCUPANCY_BY_BEDROOMS: Record<number, number> = {
+  1: 38,
+  2: 36,
+  3: 33,
+  4: 30,
+  5: 28,
+  6: 26,
+};
+
 const PROPERTY_MULTIPLIER: Record<PropertyType, number> = {
   cottage: 0.93,
   house: 1,
@@ -138,15 +147,15 @@ const AMENITY_UPLIFTS: Record<keyof DillonBeachAmenities, number> = {
   firePitDeck: 0.028,
 };
 
-const ASKING_TO_REALIZED_ADR = 0.86;
-const NON_BEDROOM_MULTIPLIER_CAP = 1.55;
+const ASKING_TO_REALIZED_ADR = 0.9;
+const NON_BEDROOM_MULTIPLIER_CAP = 1.35;
 const NON_BEDROOM_MULTIPLIER_FLOOR = 0.72;
 
 const SEASONS: Omit<SeasonalEstimate, "revenue">[] = [
-  { key: "winter", label: "Winter", share: 18, note: "Lower midweek demand, weather-led weekends." },
-  { key: "spring", label: "Spring", share: 23, note: "Spring breaks, coastal weekends, and shoulder-season value." },
-  { key: "summer", label: "Summer", share: 36, note: "Peak beach demand and highest rate compression." },
-  { key: "fall", label: "Fall", share: 23, note: "Strong weekends, holidays, and calmer shoulder weeks." },
+  { key: "winter", label: "Winter", share: 23, note: "Weather-led weekends, holidays, and selective midweek demand." },
+  { key: "spring", label: "Spring", share: 21, note: "Spring breaks, coastal weekends, and shoulder-season value." },
+  { key: "summer", label: "Summer", share: 32, note: "Peak beach demand and highest rate compression." },
+  { key: "fall", label: "Fall", share: 24, note: "Strong weekends, holidays, and calmer shoulder weeks." },
 ];
 
 function clamp(value: number, min: number, max: number) {
@@ -159,11 +168,12 @@ function roundTo(value: number, increment: number) {
 }
 
 function rangeFromMidpoint(midpoint: number, width: number, increment: number): MoneyRange {
-  const low = roundTo(midpoint * (1 - width), increment);
-  const high = roundTo(midpoint * (1 + width), increment);
+  const roundedMidpoint = roundTo(midpoint, increment);
+  const low = roundTo(roundedMidpoint * (1 - width), increment);
+  const high = roundTo(roundedMidpoint * (1 + width), increment);
   return {
     low,
-    midpoint: roundTo(midpoint, increment),
+    midpoint: roundedMidpoint,
     high: Math.max(high, low + increment),
   };
 }
@@ -219,14 +229,20 @@ function cappedNonBedroomMultiplier(input: DillonBeachEstimatorInput) {
 }
 
 function occupancyMidpoint(input: DillonBeachEstimatorInput) {
-  const baseline = 47;
-  const view = input.oceanView === "direct" ? 2.5 : input.oceanView === "partial" ? 1 : -1.5;
-  const access = input.beachAccess === "walkable" ? 2 : input.beachAccess === "nearby" ? 0.5 : -1.5;
-  const positioning = input.marketPositioning === "luxury" ? -2 : input.marketPositioning === "standard" ? 1.5 : 0;
-  const condition = input.interiorCondition === "dated" ? -4 : input.interiorCondition === "designer" ? 1 : 0;
-  const hotTub = input.amenities.hotTub ? 1.5 : 0;
-  const petFriendly = input.amenities.petFriendly ? 1.5 : 0;
-  return clamp(baseline + view + access + positioning + condition + hotTub + petFriendly, 34, 57);
+  const baseline = PAID_OCCUPANCY_BY_BEDROOMS[input.bedrooms];
+  const view = input.oceanView === "direct" ? 2 : input.oceanView === "partial" ? 0.5 : -1;
+  const access = input.beachAccess === "walkable" ? 1.5 : input.beachAccess === "nearby" ? 0.5 : -1;
+  const positioning = input.marketPositioning === "luxury" ? -1.5 : input.marketPositioning === "standard" ? 1 : 0;
+  const condition = input.interiorCondition === "dated"
+    ? -3
+    : input.interiorCondition === "standard"
+      ? -1
+      : input.interiorCondition === "updated"
+        ? 0
+        : 0.5;
+  const hotTub = input.amenities.hotTub ? 1 : 0;
+  const petFriendly = input.amenities.petFriendly ? 1 : 0;
+  return clamp(baseline + view + access + positioning + condition + hotTub + petFriendly, 20, 45);
 }
 
 function buildValueDrivers(input: DillonBeachEstimatorInput): ValueDriver[] {
@@ -412,8 +428,8 @@ function buildCaveats(input: DillonBeachEstimatorInput): EstimateNote[] {
     });
   }
   caveats.push({
-    title: "Conservative local calibration",
-    body: "Pandemic-era revenue spikes are treated as anomalies; current estimates are anchored to recent Dillon Beach asking-rate snapshots and normalized demand.",
+    title: "Estimate, not an appraisal",
+    body: "This is an estimate, not an appraisal or guarantee. Results depend on listing quality, calendar strategy, regulation, operations, fees, and market conditions.",
   });
   return caveats;
 }
@@ -428,7 +444,7 @@ export function calculateDillonBeachEstimate(input: DillonBeachEstimatorInput): 
   const occupancy = occupancyMidpoint(normalized);
   const bookedNightsMidpoint = rentableNights * (occupancy / 100);
   const grossMidpoint = adrMidpoint * bookedNightsMidpoint;
-  const gross = rangeFromMidpoint(grossMidpoint, 0.17, 1000);
+  const gross = rangeFromMidpoint(grossMidpoint, 0.18, 1000);
   const ownerNet: MoneyRange = {
     low: roundTo(gross.low * (1 - normalized.managementRate / 100), 1000),
     midpoint: roundTo(gross.midpoint * (1 - normalized.managementRate / 100), 1000),
@@ -446,17 +462,20 @@ export function calculateDillonBeachEstimate(input: DillonBeachEstimatorInput): 
     },
     annualGross: gross,
     ownerNet,
-    blendedAdr: rangeFromMidpoint(adrMidpoint, 0.11, 25),
-    occupancy: rangeFromMidpoint(occupancy, 0.1, 1),
-    bookedNights: rangeFromMidpoint(bookedNightsMidpoint, 0.1, 1),
+    blendedAdr: rangeFromMidpoint(adrMidpoint, 0.12, 25),
+    occupancy: rangeFromMidpoint(occupancy, 0.15, 1),
+    bookedNights: rangeFromMidpoint(bookedNightsMidpoint, 0.15, 1),
     seasonalBreakdown,
     valueDrivers: buildValueDrivers(normalized),
     opportunities: buildOpportunities(normalized),
     caveats: buildCaveats(normalized),
     methodology: [
-      "Bedroom anchors use observed Dillon Beach asking-rate snapshots: 2BR/6 around $663, 3BR/8 around $892, 4BR/10 around $1,173, and 5BR/14 around $1,624.",
-      "Revenue is converted from asking-rate evidence to realized accommodation revenue with conservative paid-occupancy assumptions rather than scraped availability.",
-      "Local luxury estimates are capped so view, condition, positioning, and amenity adjustments do not compound beyond recent normalized asking-rate baselines.",
+      "Paid occupancy is anchored to a recent 2023-2025 local operating sample for large luxury homes in the high-20% range, then adjusted modestly by bedroom count, view, access, positioning, condition, hot tub, and pet-friendly policy.",
+      "ADR anchors use 368 observed listing-days from May 1-Jul 31, 2026 across one listing per 2-5BR tier in Dillon Beach: 2BR/6 around $663, 3BR/8 around $892, 4BR/10 around $1,173, and 5BR/14 around $1,624.",
+      "Blocked/unavailable comp days are not treated as bookings because they may be owner blocks, holds, or stale calendars. 1BR and 6BR are extrapolated from the observed bedroom curve.",
+      "Revenue converts asking-rate evidence to realized accommodation revenue with a 0.90 asking-to-realized ADR factor; paid occupancy is a percent of rentable nights after owner-use weeks are removed.",
+      "Annual gross uses +/-18% uncertainty, ADR uses +/-12%, and occupancy/booked nights use +/-15% to reflect estimate risk.",
+      "Local luxury estimates are capped so view, condition, positioning, and amenity adjustments do not compound beyond observed asking-rate baselines.",
       "Management fee changes owner net only; it does not change gross accommodation revenue.",
     ],
   };

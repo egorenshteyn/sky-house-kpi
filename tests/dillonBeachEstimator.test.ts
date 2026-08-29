@@ -46,8 +46,8 @@ describe("calculateDillonBeachEstimate", () => {
     const result = estimate();
 
     assert.equal(result.personalization.firstName, "Avery");
-    assert.ok(result.annualGross.midpoint >= 125_000);
-    assert.ok(result.annualGross.midpoint <= 165_000);
+    assert.ok(result.annualGross.midpoint >= 80_000);
+    assert.ok(result.annualGross.midpoint <= 120_000);
     assert.ok(result.annualGross.low < result.annualGross.midpoint);
     assert.ok(result.annualGross.midpoint < result.annualGross.high);
     assert.ok(result.ownerNet.low < result.ownerNet.high);
@@ -56,6 +56,52 @@ describe("calculateDillonBeachEstimate", () => {
     assert.ok(result.bookedNights.high <= 365);
     assert.equal(result.seasonalBreakdown.length, 4);
     assert.equal(result.seasonalBreakdown.reduce((sum, season) => sum + season.share, 0), 100);
+  });
+
+  it("uses exact bedroom-tier paid occupancy baselines before attribute adjustments", () => {
+    const neutralAdjustment = {
+      oceanView: "direct" as const,
+      beachAccess: "drive" as const,
+      marketPositioning: "luxury" as const,
+      interiorCondition: "fully-renovated" as const,
+      amenities: {
+        hotTub: false,
+        petFriendly: false,
+        fireplace: false,
+        gameRoom: false,
+        evCharger: false,
+        firePitDeck: false,
+      },
+    };
+
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 1 }).occupancy.midpoint, 38);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 2 }).occupancy.midpoint, 36);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 3 }).occupancy.midpoint, 33);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 4 }).occupancy.midpoint, 30);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 5 }).occupancy.midpoint, 28);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 6 }).occupancy.midpoint, 26);
+  });
+
+  it("lands the 5 bedroom recent benchmark near the high-20s before adjustments", () => {
+    const result = estimate({
+      bedrooms: 5,
+      oceanView: "direct",
+      beachAccess: "drive",
+      marketPositioning: "luxury",
+      interiorCondition: "fully-renovated",
+      amenities: {
+        hotTub: false,
+        petFriendly: false,
+        fireplace: false,
+        gameRoom: false,
+        evCharger: false,
+        firePitDeck: false,
+      },
+    });
+
+    assert.equal(result.occupancy.midpoint, 28);
+    assert.ok(result.occupancy.low <= 24);
+    assert.ok(result.occupancy.high >= 32);
   });
 
   it("increases revenue for a larger luxury designer home", () => {
@@ -101,9 +147,72 @@ describe("calculateDillonBeachEstimate", () => {
       ownerUseWeeks: 0,
     });
 
-    assert.ok(result.annualGross.midpoint >= 240_000);
-    assert.ok(result.annualGross.midpoint <= 310_000);
-    assert.ok(result.annualGross.midpoint <= 330_000);
+    assert.equal(result.occupancy.midpoint, 35);
+    assert.ok(result.occupancy.high < 50);
+    assert.ok(result.annualGross.midpoint >= 170_000);
+    assert.ok(result.annualGross.midpoint <= 210_000);
+  });
+
+  it("clamps paid occupancy to the defensible 20% to 45% range", () => {
+    const optimistic = estimate({
+      bedrooms: 1,
+      propertyType: "house",
+      marketPositioning: "standard",
+      interiorCondition: "designer",
+      oceanView: "direct",
+      beachAccess: "walkable",
+      amenities: {
+        hotTub: true,
+        petFriendly: true,
+        fireplace: false,
+        gameRoom: false,
+        evCharger: false,
+        firePitDeck: false,
+      },
+    });
+    const sparse = estimate({
+      bedrooms: 6,
+      propertyType: "luxury-home",
+      marketPositioning: "luxury",
+      interiorCondition: "dated",
+      oceanView: "none",
+      beachAccess: "drive",
+      amenities: {
+        hotTub: false,
+        petFriendly: false,
+        fireplace: false,
+        gameRoom: false,
+        evCharger: false,
+        firePitDeck: false,
+      },
+    });
+
+    assert.equal(optimistic.occupancy.midpoint, 45);
+    assert.equal(sparse.occupancy.midpoint, 20);
+  });
+
+  it("uses the recalibrated 2023-2025 seasonal revenue shares", () => {
+    const shares = estimate().seasonalBreakdown.map((season) => [season.key, season.share]);
+
+    assert.deepEqual(shares, [
+      ["winter", 23],
+      ["spring", 21],
+      ["summer", 32],
+      ["fall", 24],
+    ]);
+  });
+
+  it("uses wider honest uncertainty ranges", () => {
+    const result = estimate();
+
+    assert.equal(result.annualGross.low, Math.round((result.annualGross.midpoint * 0.82) / 1000) * 1000);
+    assert.equal(result.annualGross.high, Math.round((result.annualGross.midpoint * 1.18) / 1000) * 1000);
+    assert.equal(result.blendedAdr.low, Math.round((result.blendedAdr.midpoint * 0.88) / 25) * 25);
+    assert.equal(result.blendedAdr.high, Math.round((result.blendedAdr.midpoint * 1.12) / 25) * 25);
+    assert.equal(result.occupancy.low, Math.round(result.occupancy.midpoint * 0.85));
+    assert.equal(result.occupancy.high, Math.round(result.occupancy.midpoint * 1.15));
+    assert.equal(result.bookedNights.low, Math.round(result.bookedNights.midpoint * 0.85));
+    assert.equal(result.bookedNights.high, Math.round(result.bookedNights.midpoint * 1.15));
   });
 
   it("keeps quality, amenity, and bedroom improvements monotonic", () => {
@@ -167,6 +276,14 @@ describe("calculateDillonBeachEstimate", () => {
     assert.ok(managed.ownerNet.midpoint < selfManaged.ownerNet.midpoint);
   });
 
+  it("owner-use weeks reduce rentable booked nights but not paid occupancy", () => {
+    const noOwnerUse = estimate({ ownerUseWeeks: 0 });
+    const fourWeeks = estimate({ ownerUseWeeks: 4 });
+
+    assert.equal(fourWeeks.occupancy.midpoint, noOwnerUse.occupancy.midpoint);
+    assert.ok(fourWeeks.bookedNights.midpoint < noOwnerUse.bookedNights.midpoint);
+  });
+
   it("flags guest-count-to-bedroom mismatch", () => {
     const result = estimate({ bedrooms: 2, maxGuests: 12 });
 
@@ -223,15 +340,28 @@ describe("calculateDillonBeachEstimate", () => {
     assert.ok(result.opportunities.length <= 3);
   });
 
-  it("does not expose private property history in public methodology or caveats", () => {
+  it("describes data basis and limitations without exposing private names or revenue", () => {
     const result = estimate();
     const publicCopy = [
       ...result.methodology,
       ...result.caveats.map((caveat) => `${caveat.title} ${caveat.body}`),
     ].join(" ");
 
+    assert.match(publicCopy, /2023-2025 local operating sample/i);
+    assert.match(publicCopy, /high-20%/i);
+    assert.match(publicCopy, /368 observed listing-days/i);
+    assert.match(publicCopy, /one listing per 2-5BR tier/i);
+    assert.match(publicCopy, /blocked\/unavailable comp days are not treated as bookings/i);
+    assert.match(publicCopy, /1BR and 6BR are extrapolated/i);
+    assert.match(publicCopy, /estimate, not an appraisal or guarantee/i);
     assert.doesNotMatch(publicCopy, /Sky House/i);
-    assert.doesNotMatch(publicCopy, /booking|guest|historical results|private/i);
+    assert.doesNotMatch(publicCopy, /guest/i);
+    assert.doesNotMatch(publicCopy, /\$[0-9]{3},[0-9]{3}/);
+    assert.doesNotMatch(publicCopy, /2020|2021|2022|pandemic/i);
+    assert.doesNotMatch(publicCopy, /2019/i);
+    assert.doesNotMatch(publicCopy, /\b(?:89|93|103|114)\s+paid nights\b/i);
+    assert.doesNotMatch(publicCopy, /\b(?:24\.4|25\.5|28\.2|31\.1)%/);
+    assert.doesNotMatch(publicCopy, /\$(?:1,530|1,663|1,667|2,025)\b/);
   });
 
   it("clamps edge cases and never emits NaN or infinity", () => {

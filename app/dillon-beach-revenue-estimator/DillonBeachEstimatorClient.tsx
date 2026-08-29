@@ -229,12 +229,12 @@ export default function DillonBeachEstimatorClient() {
             <h1 id="hero-title">Estimate vacation-rental revenue before you list, buy, or upgrade.</h1>
             <p className={styles.heroCopy}>
               A data-informed public estimator for coastal homes, calibrated with local Dillon Beach
-              asking-rate observations, conservative realized-demand assumptions, seasonality, and practical amenity uplifts.
+              asking-rate observations, recent paid-occupancy evidence, seasonality, and practical amenity uplifts.
             </p>
           </div>
           <div className={styles.heroPanel} aria-label="Example estimate preview">
             <span>Typical output</span>
-            <strong>$120k to $420k</strong>
+            <strong>$60k to $300k</strong>
             <p>Gross accommodation revenue range depends on size, view, condition, guest capacity, and owner use.</p>
           </div>
         </section>
@@ -549,6 +549,15 @@ export default function DillonBeachEstimatorClient() {
 
             <section className={styles.methodology} aria-labelledby="methodology-title">
               <h3 id="methodology-title">Methodology</h3>
+              <div className={styles.dataBasis}>
+                <strong>Data basis</strong>
+                <p>
+                  This is an estimate, not an appraisal or guarantee. Occupancy is anchored to a recent
+                  2023-2025 local operating sample for large luxury homes in the high-20% range. ADR anchors
+                  use 368 observed listing-days across one active 2-5BR Dillon Beach listing per tier; blocked
+                  or unavailable comp days are not counted as bookings, and 1BR/6BR are extrapolated.
+                </p>
+              </div>
               <ul>
                 {result.methodology.map((item) => <li key={item}>{item}</li>)}
               </ul>
