@@ -535,6 +535,29 @@
   line-height: 1.6;
 }
 
+.sourceLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sourceLinks a {
+  border: 1px solid rgba(81, 118, 123, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #172127;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.sourceLinks a:hover,
+.sourceLinks a:focus-visible {
+  border-color: #51767b;
+  color: #345b60;
+}
+
 .methodology ul {
   margin: 0;
   padding-left: 18px;
@@ -542,6 +565,34 @@
 
 .methodology li + li {
   margin-top: 8px;
+}
+
+.calculationDisclosure {
+  border-top: 1px solid rgba(23, 33, 39, 0.09);
+  padding-top: 12px;
+}
+
+.calculationDisclosure summary {
+  border-radius: 6px;
+  color: #172127;
+  cursor: pointer;
+  font-weight: 800;
+  list-style-position: inside;
+  padding: 8px 10px;
+}
+
+.calculationDisclosure summary:hover {
+  background: rgba(81, 118, 123, 0.08);
+  color: #345b60;
+}
+
+.calculationDisclosure summary:focus-visible {
+  outline: 3px solid rgba(81, 118, 123, 0.42);
+  outline-offset: 2px;
+}
+
+.calculationDisclosure ul {
+  margin-top: 12px;
 }
 
 .liveRegion {
@@ -658,5 +709,13 @@
   .report {
     box-shadow: none;
     border: 0;
+  }
+
+  .calculationDisclosure summary {
+    display: none;
+  }
+
+  .calculationDisclosure > ul {
+    display: block !important;
   }
 }

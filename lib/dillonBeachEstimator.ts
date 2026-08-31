@@ -79,6 +79,26 @@ export type DillonBeachEstimatorOutput = {
   methodology: string[];
 };
 
+export const DILLON_BEACH_PUBLIC_SOURCES = [
+  {
+    name: "AirROI",
+    url: "https://www.airroi.com/airbnb-data/united-states/california/dillon-beach",
+    summary: "Updated 2026-08-08, covering Aug 2025-Jul 2026: 81 active listings, 38.1% average occupancy, approximately 36% median occupancy, $725 ADR, and $96,206 average annual revenue.",
+  },
+  {
+    name: "STR Profit Map",
+    url: "https://www.strprofitmap.com/analysis/state/CA/dillon-beach",
+    summary: "Public Dillon Beach page: 149 reliable / 203 active listings, approximately 49.7% median occupancy, $503 median ADR, and $79,068 median annual revenue.",
+  },
+  {
+    name: "AirDNA",
+    url: "https://www.airdna.co/vacation-rental-data/app/us/california/dillon-beach/overview",
+    summary: "Public Dillon Beach overview exists; deeper methodology and data may be paywalled.",
+  },
+] as const;
+
+export const DILLON_BEACH_OCCUPANCY_CLAMP = { min: 25, max: 50 } as const;
+
 const DEFAULT_AMENITIES: DillonBeachAmenities = {
   hotTub: false,
   petFriendly: false,
@@ -98,12 +118,12 @@ const ADR_BY_BEDROOMS: Record<number, number> = {
 };
 
 const PAID_OCCUPANCY_BY_BEDROOMS: Record<number, number> = {
-  1: 38,
-  2: 36,
-  3: 33,
-  4: 30,
-  5: 28,
-  6: 26,
+  1: 43,
+  2: 42,
+  3: 40,
+  4: 38,
+  5: 36,
+  6: 35,
 };
 
 const PROPERTY_MULTIPLIER: Record<PropertyType, number> = {
@@ -178,6 +198,21 @@ function rangeFromMidpoint(midpoint: number, width: number, increment: number): 
   };
 }
 
+function boundedPercentRangeFromMidpoint(
+  midpoint: number,
+  width: number,
+  increment: number,
+  bounds: { min: number; max: number },
+): PercentRange {
+  const range = rangeFromMidpoint(midpoint, width, increment);
+  const boundedMidpoint = roundTo(clamp(range.midpoint, bounds.min, bounds.max), increment);
+  return {
+    low: Math.min(boundedMidpoint, roundTo(clamp(range.low, bounds.min, bounds.max), increment)),
+    midpoint: boundedMidpoint,
+    high: Math.max(boundedMidpoint, roundTo(clamp(range.high, bounds.min, bounds.max), increment)),
+  };
+}
+
 function normalizeInput(input: DillonBeachEstimatorInput): DillonBeachEstimatorInput {
   const bedrooms = Math.round(clamp(input.bedrooms, 1, 6));
   const maxGuests = Math.round(clamp(input.maxGuests, 2, 16));
@@ -242,7 +277,11 @@ function occupancyMidpoint(input: DillonBeachEstimatorInput) {
         : 0.5;
   const hotTub = input.amenities.hotTub ? 1 : 0;
   const petFriendly = input.amenities.petFriendly ? 1 : 0;
-  return clamp(baseline + view + access + positioning + condition + hotTub + petFriendly, 20, 45);
+  return clamp(
+    baseline + view + access + positioning + condition + hotTub + petFriendly,
+    DILLON_BEACH_OCCUPANCY_CLAMP.min,
+    DILLON_BEACH_OCCUPANCY_CLAMP.max,
+  );
 }
 
 function buildValueDrivers(input: DillonBeachEstimatorInput): ValueDriver[] {
@@ -437,13 +476,20 @@ function buildCaveats(input: DillonBeachEstimatorInput): EstimateNote[] {
 export function calculateDillonBeachEstimate(input: DillonBeachEstimatorInput): DillonBeachEstimatorOutput {
   const normalized = normalizeInput(input);
   const baseAdr = ADR_BY_BEDROOMS[normalized.bedrooms];
-  const adrMidpoint = baseAdr
+  const rawAdrMidpoint = baseAdr
     * ASKING_TO_REALIZED_ADR
     * cappedNonBedroomMultiplier(normalized);
   const rentableNights = 365 - normalized.ownerUseWeeks * 7;
-  const occupancy = occupancyMidpoint(normalized);
-  const bookedNightsMidpoint = rentableNights * (occupancy / 100);
-  const grossMidpoint = adrMidpoint * bookedNightsMidpoint;
+  const rawOccupancyMidpoint = occupancyMidpoint(normalized);
+  const blendedAdr = rangeFromMidpoint(rawAdrMidpoint, 0.12, 25);
+  const occupancy = boundedPercentRangeFromMidpoint(
+    rawOccupancyMidpoint,
+    0.15,
+    1,
+    DILLON_BEACH_OCCUPANCY_CLAMP,
+  );
+  const bookedNights = rangeFromMidpoint(rentableNights * occupancy.midpoint / 100, 0.15, 1);
+  const grossMidpoint = blendedAdr.midpoint * bookedNights.midpoint;
   const gross = rangeFromMidpoint(grossMidpoint, 0.18, 1000);
   const ownerNet: MoneyRange = {
     low: roundTo(gross.low * (1 - normalized.managementRate / 100), 1000),
@@ -462,20 +508,21 @@ export function calculateDillonBeachEstimate(input: DillonBeachEstimatorInput): 
     },
     annualGross: gross,
     ownerNet,
-    blendedAdr: rangeFromMidpoint(adrMidpoint, 0.12, 25),
-    occupancy: rangeFromMidpoint(occupancy, 0.15, 1),
-    bookedNights: rangeFromMidpoint(bookedNightsMidpoint, 0.15, 1),
+    blendedAdr,
+    occupancy,
+    bookedNights,
     seasonalBreakdown,
     valueDrivers: buildValueDrivers(normalized),
     opportunities: buildOpportunities(normalized),
     caveats: buildCaveats(normalized),
     methodology: [
-      "Paid occupancy is anchored to a recent 2023-2025 local operating sample for large luxury homes in the high-20% range, then adjusted modestly by bedroom count, view, access, positioning, condition, hot tub, and pet-friendly policy.",
+      "Paid occupancy is calibrated to public third-party modeled estimates for Dillon Beach: AirROI, updated 2026-08-08 and covering Aug 2025-Jul 2026, reports 81 active listings, 38.1% average occupancy, about 36% median occupancy, $725 ADR, and $96,206 average annual revenue; STR Profit Map reports 149 reliable / 203 active listings, about 49.7% median occupancy, $503 median ADR, and $79,068 median annual revenue.",
+      "The public sources materially disagree because of listing filters, available-night denominators, and blocked-date treatment. The estimator therefore uses a conservative public-market center, with a 3BR public-market center near 40%, smaller homes modestly higher, larger homes modestly lower, and a 25% to 50% paid-occupancy clamp.",
       "ADR anchors use 368 observed listing-days from May 1-Jul 31, 2026 across one listing per 2-5BR tier in Dillon Beach: 2BR/6 around $663, 3BR/8 around $892, 4BR/10 around $1,173, and 5BR/14 around $1,624.",
-      "Blocked/unavailable comp days are not treated as bookings because they may be owner blocks, holds, or stale calendars. 1BR and 6BR are extrapolated from the observed bedroom curve.",
+      "Airbnb/Vrbo blocked dates are not treated as bookings because they may be owner blocks, holds, or stale calendars. AirDNA has a public Dillon Beach overview, though deeper methodology and data may be paywalled. 1BR and 6BR are extrapolated from the observed bedroom curve.",
       "Revenue converts asking-rate evidence to realized accommodation revenue with a 0.90 asking-to-realized ADR factor; paid occupancy is a percent of rentable nights after owner-use weeks are removed.",
       "Annual gross uses +/-18% uncertainty, ADR uses +/-12%, and occupancy/booked nights use +/-15% to reflect estimate risk.",
-      "Local luxury estimates are capped so view, condition, positioning, and amenity adjustments do not compound beyond observed asking-rate baselines.",
+      "Luxury estimates are capped so view, condition, positioning, and amenity adjustments do not compound beyond observed asking-rate baselines.",
       "Management fee changes owner net only; it does not change gross accommodation revenue.",
     ],
   };

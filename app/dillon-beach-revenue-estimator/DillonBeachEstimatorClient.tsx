@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   calculateDillonBeachEstimate,
+  DILLON_BEACH_PUBLIC_SOURCES,
   type BeachAccess,
   type DillonBeachAmenities,
   type DillonBeachEstimatorInput,
@@ -215,6 +216,7 @@ export default function DillonBeachEstimatorClient() {
   const mailto = result
     ? `mailto:${encodeURIComponent(input.email || "")}?subject=${encodeURIComponent("Your Dillon Beach revenue estimate")}&body=${encodeURIComponent(buildSummary(result))}`
     : "#";
+  const calculationDetails = result?.methodology.slice(2) ?? [];
 
   return (
     <div className={styles.page}>
@@ -228,8 +230,8 @@ export default function DillonBeachEstimatorClient() {
             <p className={styles.eyebrow}>Dillon Beach, California</p>
             <h1 id="hero-title">Estimate vacation-rental revenue before you list, buy, or upgrade.</h1>
             <p className={styles.heroCopy}>
-              A data-informed public estimator for coastal homes, calibrated with local Dillon Beach
-              asking-rate observations, recent paid-occupancy evidence, seasonality, and practical amenity uplifts.
+              A data-informed public estimator for coastal homes, calibrated with Dillon Beach asking-rate
+              observations, public occupancy benchmarks, seasonality, and practical amenity uplifts.
             </p>
           </div>
           <div className={styles.heroPanel} aria-label="Example estimate preview">
@@ -239,7 +241,7 @@ export default function DillonBeachEstimatorClient() {
           </div>
         </section>
         <div className={styles.trustStrip} aria-label="Estimator trust signals">
-          <span>Local Dillon Beach calibration</span>
+          <span>Public Dillon Beach benchmarks</span>
           <span>No account required</span>
           <span>Instant estimate</span>
         </div>
@@ -552,15 +554,28 @@ export default function DillonBeachEstimatorClient() {
               <div className={styles.dataBasis}>
                 <strong>Data basis</strong>
                 <p>
-                  This is an estimate, not an appraisal or guarantee. Occupancy is anchored to a recent
-                  2023-2025 local operating sample for large luxury homes in the high-20% range. ADR anchors
-                  use 368 observed listing-days across one active 2-5BR Dillon Beach listing per tier; blocked
-                  or unavailable comp days are not counted as bookings, and 1BR/6BR are extrapolated.
+                  This is an estimate, not an appraisal or guarantee. Occupancy uses public third-party
+                  benchmarks: AirROI reports 81 active listings, 38.1% average occupancy, about 36% median
+                  occupancy, $725 ADR, and $96,206 average annual revenue for Aug 2025-Jul 2026, updated
+                  2026-08-08; STR Profit Map reports 149 reliable / 203 active listings, about 49.7% median
+                  occupancy, $503 median ADR, and $79,068 median annual revenue. The sources disagree, so the
+                  model uses a conservative public-market center near 40% for a typical 3BR home. Airbnb/Vrbo
+                  blocked dates are not counted as bookings.
                 </p>
+                <div className={styles.sourceLinks} aria-label="Public benchmark sources">
+                  {DILLON_BEACH_PUBLIC_SOURCES.map((source) => (
+                    <a key={source.name} href={source.url} target="_blank" rel="noopener noreferrer">
+                      {source.name}
+                    </a>
+                  ))}
+                </div>
               </div>
-              <ul>
-                {result.methodology.map((item) => <li key={item}>{item}</li>)}
-              </ul>
+              <details className={styles.calculationDisclosure}>
+                <summary>Calculation details</summary>
+                <ul>
+                  {calculationDetails.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </details>
             </section>
 
             <div className={styles.reportFooter}>

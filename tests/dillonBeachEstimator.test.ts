@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   calculateDillonBeachEstimate,
+  DILLON_BEACH_OCCUPANCY_CLAMP,
+  DILLON_BEACH_PUBLIC_SOURCES,
   type DillonBeachEstimatorInput,
 } from "../lib/dillonBeachEstimator";
 
@@ -47,7 +49,7 @@ describe("calculateDillonBeachEstimate", () => {
 
     assert.equal(result.personalization.firstName, "Avery");
     assert.ok(result.annualGross.midpoint >= 80_000);
-    assert.ok(result.annualGross.midpoint <= 120_000);
+    assert.ok(result.annualGross.midpoint <= 130_000);
     assert.ok(result.annualGross.low < result.annualGross.midpoint);
     assert.ok(result.annualGross.midpoint < result.annualGross.high);
     assert.ok(result.ownerNet.low < result.ownerNet.high);
@@ -74,15 +76,15 @@ describe("calculateDillonBeachEstimate", () => {
       },
     };
 
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 1 }).occupancy.midpoint, 38);
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 2 }).occupancy.midpoint, 36);
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 3 }).occupancy.midpoint, 33);
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 4 }).occupancy.midpoint, 30);
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 5 }).occupancy.midpoint, 28);
-    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 6 }).occupancy.midpoint, 26);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 1 }).occupancy.midpoint, 43);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 2 }).occupancy.midpoint, 42);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 3 }).occupancy.midpoint, 40);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 4 }).occupancy.midpoint, 38);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 5 }).occupancy.midpoint, 36);
+    assert.equal(estimate({ ...neutralAdjustment, bedrooms: 6 }).occupancy.midpoint, 35);
   });
 
-  it("lands the 5 bedroom recent benchmark near the high-20s before adjustments", () => {
+  it("keeps the 5 bedroom public benchmark no lower than AirROI's median neighborhood occupancy", () => {
     const result = estimate({
       bedrooms: 5,
       oceanView: "direct",
@@ -99,9 +101,9 @@ describe("calculateDillonBeachEstimate", () => {
       },
     });
 
-    assert.equal(result.occupancy.midpoint, 28);
-    assert.ok(result.occupancy.low <= 24);
-    assert.ok(result.occupancy.high >= 32);
+    assert.equal(result.occupancy.midpoint, 36);
+    assert.ok(result.occupancy.low <= 31);
+    assert.ok(result.occupancy.high >= 41);
   });
 
   it("increases revenue for a larger luxury designer home", () => {
@@ -147,13 +149,13 @@ describe("calculateDillonBeachEstimate", () => {
       ownerUseWeeks: 0,
     });
 
-    assert.equal(result.occupancy.midpoint, 35);
-    assert.ok(result.occupancy.high < 50);
-    assert.ok(result.annualGross.midpoint >= 170_000);
-    assert.ok(result.annualGross.midpoint <= 210_000);
+    assert.equal(result.occupancy.midpoint, 43);
+    assert.ok(result.occupancy.high <= 50);
+    assert.ok(result.annualGross.midpoint >= 210_000);
+    assert.ok(result.annualGross.midpoint <= 250_000);
   });
 
-  it("clamps paid occupancy to the defensible 20% to 45% range", () => {
+  it("uses the defensible 25% to 50% public-market paid occupancy guardrail", () => {
     const optimistic = estimate({
       bedrooms: 1,
       propertyType: "house",
@@ -187,11 +189,65 @@ describe("calculateDillonBeachEstimate", () => {
       },
     });
 
-    assert.equal(optimistic.occupancy.midpoint, 45);
-    assert.equal(sparse.occupancy.midpoint, 20);
+    assert.deepEqual(DILLON_BEACH_OCCUPANCY_CLAMP, { min: 25, max: 50 });
+    assert.equal(optimistic.occupancy.midpoint, 50);
+    assert.equal(sparse.occupancy.midpoint, 29);
+    assert.ok(sparse.occupancy.midpoint >= DILLON_BEACH_OCCUPANCY_CLAMP.min);
   });
 
-  it("uses the recalibrated 2023-2025 seasonal revenue shares", () => {
+  it("keeps the full displayed paid occupancy range within the public-market guardrail", () => {
+    const cases = [
+      estimate({
+        bedrooms: 1,
+        bathrooms: 2,
+        maxGuests: 6,
+        propertyType: "house",
+        marketPositioning: "standard",
+        interiorCondition: "designer",
+        oceanView: "direct",
+        beachAccess: "walkable",
+        amenities: {
+          hotTub: true,
+          petFriendly: true,
+          fireplace: true,
+          gameRoom: true,
+          evCharger: true,
+          firePitDeck: true,
+        },
+      }),
+      estimate({
+        bedrooms: 6,
+        bathrooms: 1,
+        maxGuests: 2,
+        propertyType: "luxury-home",
+        marketPositioning: "luxury",
+        interiorCondition: "dated",
+        oceanView: "none",
+        beachAccess: "drive",
+        amenities: {
+          hotTub: false,
+          petFriendly: false,
+          fireplace: false,
+          gameRoom: false,
+          evCharger: false,
+          firePitDeck: false,
+        },
+      }),
+    ];
+
+    for (const result of cases) {
+      assert.ok(result.occupancy.low >= DILLON_BEACH_OCCUPANCY_CLAMP.min);
+      assert.ok(result.occupancy.midpoint >= DILLON_BEACH_OCCUPANCY_CLAMP.min);
+      assert.ok(result.occupancy.high >= DILLON_BEACH_OCCUPANCY_CLAMP.min);
+      assert.ok(result.occupancy.low <= DILLON_BEACH_OCCUPANCY_CLAMP.max);
+      assert.ok(result.occupancy.midpoint <= DILLON_BEACH_OCCUPANCY_CLAMP.max);
+      assert.ok(result.occupancy.high <= DILLON_BEACH_OCCUPANCY_CLAMP.max);
+      assert.ok(result.occupancy.low <= result.occupancy.midpoint);
+      assert.ok(result.occupancy.midpoint <= result.occupancy.high);
+    }
+  });
+
+  it("uses the documented seasonal revenue-share assumptions", () => {
     const shares = estimate().seasonalBreakdown.map((season) => [season.key, season.share]);
 
     assert.deepEqual(shares, [
@@ -213,6 +269,130 @@ describe("calculateDillonBeachEstimate", () => {
     assert.equal(result.occupancy.high, Math.round(result.occupancy.midpoint * 1.15));
     assert.equal(result.bookedNights.low, Math.round(result.bookedNights.midpoint * 0.85));
     assert.equal(result.bookedNights.high, Math.round(result.bookedNights.midpoint * 1.15));
+  });
+
+  it("derives booked nights and gross revenue from displayed midpoint values", () => {
+    const result = estimate({
+      oceanView: "direct",
+      beachAccess: "nearby",
+      ownerUseWeeks: 3,
+    });
+    const rentableNights = 365 - result.inputs.ownerUseWeeks * 7;
+    const expectedBookedNights = Math.round(rentableNights * result.occupancy.midpoint / 100);
+    const expectedAnnualGross = Math.round((result.blendedAdr.midpoint * result.bookedNights.midpoint) / 1000) * 1000;
+
+    assert.equal(result.occupancy.midpoint, 43);
+    assert.equal(result.bookedNights.midpoint, expectedBookedNights);
+    assert.equal(result.bookedNights.midpoint, 148);
+    assert.equal(result.annualGross.midpoint, expectedAnnualGross);
+  });
+
+  it("rounds displayed booked nights at half-night boundaries using stable arithmetic", () => {
+    const result = estimate({
+      bedrooms: 4,
+      propertyType: "luxury-home",
+      marketPositioning: "luxury",
+      interiorCondition: "fully-renovated",
+      oceanView: "none",
+      beachAccess: "drive",
+      amenities: {
+        hotTub: false,
+        petFriendly: false,
+        fireplace: false,
+        gameRoom: false,
+        evCharger: false,
+        firePitDeck: false,
+      },
+      ownerUseWeeks: 5,
+    });
+    const rentableNights = 365 - result.inputs.ownerUseWeeks * 7;
+
+    assert.equal(result.occupancy.midpoint, 35);
+    assert.equal(rentableNights, 330);
+    assert.equal(result.bookedNights.midpoint, Math.round(rentableNights * result.occupancy.midpoint / 100));
+    assert.equal(result.bookedNights.midpoint, 116);
+  });
+
+  it("reconciles representative displayed half-night midpoint cases", () => {
+    const cases: Partial<DillonBeachEstimatorInput>[] = [
+      {
+        bedrooms: 5,
+        oceanView: "none",
+        beachAccess: "drive",
+        marketPositioning: "luxury",
+        interiorCondition: "dated",
+        amenities: {
+          hotTub: false,
+          petFriendly: false,
+          fireplace: false,
+          gameRoom: false,
+          evCharger: false,
+          firePitDeck: false,
+        },
+        ownerUseWeeks: 0,
+      },
+      {
+        bedrooms: 4,
+        propertyType: "luxury-home",
+        marketPositioning: "luxury",
+        interiorCondition: "fully-renovated",
+        oceanView: "none",
+        beachAccess: "drive",
+        amenities: {
+          hotTub: false,
+          petFriendly: false,
+          fireplace: false,
+          gameRoom: false,
+          evCharger: false,
+          firePitDeck: false,
+        },
+        ownerUseWeeks: 5,
+      },
+      {
+        bedrooms: 1,
+        oceanView: "partial",
+        beachAccess: "walkable",
+        marketPositioning: "standard",
+        interiorCondition: "dated",
+        amenities: {
+          hotTub: true,
+          petFriendly: true,
+          fireplace: false,
+          gameRoom: false,
+          evCharger: false,
+          firePitDeck: false,
+        },
+        ownerUseWeeks: 5,
+      },
+      {
+        bedrooms: 1,
+        oceanView: "direct",
+        beachAccess: "walkable",
+        marketPositioning: "standard",
+        interiorCondition: "updated",
+        amenities: {
+          hotTub: true,
+          petFriendly: true,
+          fireplace: false,
+          gameRoom: false,
+          evCharger: false,
+          firePitDeck: false,
+        },
+        ownerUseWeeks: 0,
+      },
+    ];
+
+    for (const overrides of cases) {
+      const result = estimate(overrides);
+      const rentableNights = 365 - result.inputs.ownerUseWeeks * 7;
+
+      assert.equal(
+        result.bookedNights.midpoint,
+        Math.round(rentableNights * result.occupancy.midpoint / 100),
+        `${rentableNights} rentable nights at ${result.occupancy.midpoint}% occupancy should reconcile`,
+      );
+      assert.equal((rentableNights * result.occupancy.midpoint) % 100, 50);
+    }
   });
 
   it("keeps quality, amenity, and bedroom improvements monotonic", () => {
@@ -340,22 +520,52 @@ describe("calculateDillonBeachEstimate", () => {
     assert.ok(result.opportunities.length <= 3);
   });
 
-  it("describes data basis and limitations without exposing private names or revenue", () => {
+  it("publishes public benchmark sources for UI citations", () => {
+    assert.deepEqual(
+      DILLON_BEACH_PUBLIC_SOURCES.map((source) => source.name),
+      ["AirROI", "STR Profit Map", "AirDNA"],
+    );
+    assert.equal(
+      DILLON_BEACH_PUBLIC_SOURCES.find((source) => source.name === "AirROI")?.url,
+      "https://www.airroi.com/airbnb-data/united-states/california/dillon-beach",
+    );
+    assert.equal(
+      DILLON_BEACH_PUBLIC_SOURCES.find((source) => source.name === "STR Profit Map")?.url,
+      "https://www.strprofitmap.com/analysis/state/CA/dillon-beach",
+    );
+    assert.equal(
+      DILLON_BEACH_PUBLIC_SOURCES.find((source) => source.name === "AirDNA")?.url,
+      "https://www.airdna.co/vacation-rental-data/app/us/california/dillon-beach/overview",
+    );
+  });
+
+  it("describes the public data basis and limitations without exposing private names or revenue", () => {
     const result = estimate();
     const publicCopy = [
       ...result.methodology,
       ...result.caveats.map((caveat) => `${caveat.title} ${caveat.body}`),
     ].join(" ");
 
-    assert.match(publicCopy, /2023-2025 local operating sample/i);
-    assert.match(publicCopy, /high-20%/i);
+    assert.match(publicCopy, /AirROI/i);
+    assert.match(publicCopy, /updated 2026-08-08/i);
+    assert.match(publicCopy, /Aug 2025-Jul 2026/i);
+    assert.match(publicCopy, /38\.1% average occupancy/i);
+    assert.match(publicCopy, /36% median occupancy/i);
+    assert.match(publicCopy, /STR Profit Map/i);
+    assert.match(publicCopy, /49\.7% median occupancy/i);
+    assert.match(publicCopy, /third-party modeled estimates/i);
+    assert.match(publicCopy, /available-night denominators/i);
+    assert.match(publicCopy, /blocked-date treatment/i);
+    assert.match(publicCopy, /Airbnb\/Vrbo blocked dates are not treated as bookings/i);
+    assert.match(publicCopy, /3BR public-market center near 40%/i);
     assert.match(publicCopy, /368 observed listing-days/i);
     assert.match(publicCopy, /one listing per 2-5BR tier/i);
-    assert.match(publicCopy, /blocked\/unavailable comp days are not treated as bookings/i);
     assert.match(publicCopy, /1BR and 6BR are extrapolated/i);
     assert.match(publicCopy, /estimate, not an appraisal or guarantee/i);
     assert.doesNotMatch(publicCopy, /Sky House/i);
-    assert.doesNotMatch(publicCopy, /guest/i);
+    assert.doesNotMatch(publicCopy, /private/i);
+    assert.doesNotMatch(publicCopy, /local operating sample/i);
+    assert.doesNotMatch(publicCopy, /operating data/i);
     assert.doesNotMatch(publicCopy, /\$[0-9]{3},[0-9]{3}/);
     assert.doesNotMatch(publicCopy, /2020|2021|2022|pandemic/i);
     assert.doesNotMatch(publicCopy, /2019/i);
