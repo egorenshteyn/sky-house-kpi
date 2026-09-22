@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/Modal";
+
 import { useEffect, useMemo, useState } from "react";
 import CompetitorForm from "./CompetitorForm";
 import type { CompetitorRow } from "@/lib/queries";
@@ -212,7 +214,7 @@ export default function CompetitorsClient({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {effective.map((c) => {
             const amenities = (() => {
               if (!c.amenities) return [] as string[];
@@ -324,7 +326,7 @@ export default function CompetitorsClient({
       )}
 
       {showForm && (
-        <Modal onClose={() => setShowForm(false)}>
+        <Modal label="Competitor details" onClose={() => setShowForm(false)}>
           <h3 className="text-sm font-semibold text-[#161616] mb-4">
             {editing ? "Edit competitor" : "Add competitor"}
           </h3>
@@ -369,28 +371,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="bg-gray-50 rounded p-2 text-center">
       <div className="text-[10px] uppercase font-mono text-gray-400">{label}</div>
       <div className="text-sm font-mono font-semibold text-[#161616]">{value}</div>
-    </div>
-  );
-}
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
     </div>
   );
 }

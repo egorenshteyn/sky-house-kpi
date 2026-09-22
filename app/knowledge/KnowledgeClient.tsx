@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { KnowledgeRow } from "@/lib/queries";
@@ -69,7 +71,7 @@ export default function KnowledgeClient({
     <>
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          <input
+          <input aria-label="Search knowledge"
             type="text"
             defaultValue={currentSearch}
             placeholder="Search title, content, tags…"
@@ -80,7 +82,7 @@ export default function KnowledgeClient({
             }}
             className="text-sm border border-gray-200 rounded-md px-3 py-1.5 w-64"
           />
-          <select
+          <select aria-label="Filter knowledge type"
             value={currentType}
             onChange={(e) => applyFilters({ type: e.target.value })}
             className="text-sm border border-gray-200 rounded-md px-3 py-1.5 bg-white"
@@ -175,10 +177,11 @@ export default function KnowledgeClient({
                 </div>
                 <div
                   className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap cursor-pointer"
-                  onClick={() => e.content.length > 200 && toggleExpand(e.id)}
+
                 >
                   {preview}
                 </div>
+                {e.content.length > 200 && <button type="button" aria-expanded={isExpanded} onClick={() => toggleExpand(e.id)} className="text-sm text-[#0f62fe]">{isExpanded ? "Show less" : "Read more"}</button>}
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {tags.map((t, i) => (
@@ -198,7 +201,7 @@ export default function KnowledgeClient({
       )}
 
       {showForm && (
-        <Modal onClose={() => setShowForm(false)}>
+        <Modal label="Knowledge entry" onClose={() => setShowForm(false)}>
           <h3 className="text-sm font-semibold text-[#161616] mb-4">
             {editing ? "Edit entry" : "Add knowledge entry"}
           </h3>
@@ -230,26 +233,4 @@ function formatDate(iso: string | null): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
 }

@@ -11,5 +11,5 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-  return <main className={isLogin ? "" : "ml-16"}>{children}</main>;
+  return <main id="main-content" tabIndex={-1} className={isLogin ? "login-shell" : "app-shell"}>{children}</main>;
 }

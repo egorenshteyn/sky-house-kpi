@@ -29,7 +29,7 @@ export default function CompsPage() {
           </div>
         }
       />
-      <div className="px-6 py-6">
+      <div className="page-content">
         <CompetitorsClient competitors={competitors} />
       </div>
     </>

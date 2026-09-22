@@ -90,10 +90,10 @@ export default function KnowledgeForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Type</label>
-          <select
+          <label htmlFor="knowledgeform-field-1" className="block text-xs text-gray-500 mb-1">Type</label>
+          <select id="knowledgeform-field-1"
             value={form.type}
             onChange={(e) => set("type", e.target.value)}
             className="input-base"
@@ -104,31 +104,30 @@ export default function KnowledgeForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">
+          <label htmlFor="knowledgeform-field-2" className="block text-xs text-gray-500 mb-1">
             Title (optional)
           </label>
-          <input
+          <input id="knowledgeform-field-2"
             type="text"
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             className="input-base"
           />
         </div>
-        <div className="col-span-2">
-          <label className="block text-xs text-gray-500 mb-1">Content</label>
-          <textarea
+        <div className="sm:col-span-2">
+          <label htmlFor="knowledgeform-field-3" className="block text-xs text-gray-500 mb-1">Content</label>
+          <textarea id="knowledgeform-field-3"
             value={form.content}
             onChange={(e) => set("content", e.target.value)}
             className="input-base min-h-[140px]"
             required
-            autoFocus
           />
         </div>
-        <div className="col-span-2">
-          <label className="block text-xs text-gray-500 mb-1">
+        <div className="sm:col-span-2">
+          <label htmlFor="knowledgeform-field-4" className="block text-xs text-gray-500 mb-1">
             Tags (comma separated)
           </label>
-          <input
+          <input id="knowledgeform-field-4"
             type="text"
             value={form.tags}
             onChange={(e) => set("tags", e.target.value)}

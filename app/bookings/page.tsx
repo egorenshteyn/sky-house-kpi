@@ -1,3 +1,4 @@
+import BookingCards from "@/components/BookingCards";
 import SubHeader from "@/components/SubHeader";
 import Link from "next/link";
 import { getAllBookings } from "@/lib/queries";
@@ -47,10 +48,11 @@ export default function BookingsPage({
           </Link>
         }
       />
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         <BookingsFilters initial={{ q, channel, status }} />
 
-        <div className="data-card rounded-lg overflow-hidden">
+        <BookingCards bookings={bookings} />
+        <div className={`data-card rounded-lg overflow-hidden ${bookings.length ? "hidden lg:block" : ""}`}>
           {bookings.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-gray-400">
               No bookings match these filters.{" "}
@@ -61,7 +63,7 @@ export default function BookingsPage({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
+              <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full min-w-[1100px] text-sm">
                 <BookingsTableHeader
                   activeSort={sortKey}
                   direction={direction}
@@ -109,7 +111,7 @@ export default function BookingsPage({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
         </div>

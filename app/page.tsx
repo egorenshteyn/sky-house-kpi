@@ -1,3 +1,4 @@
+import BookingCards from "@/components/BookingCards";
 import SubHeader from "@/components/SubHeader";
 import KpiCard from "@/components/KpiCard";
 import RevenueBarChart from "@/components/charts/RevenueBarChart";
@@ -225,7 +226,7 @@ export default function DashboardPage({
         actions={<DashboardControls period={period} basis={basis} />}
       />
 
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         {basisNotice && (
           <div className="data-card rounded-lg p-4 flex items-start gap-3 border-l-2 border-amber-400">
             <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,7 +242,7 @@ export default function DashboardPage({
         )}
 
         {/* KPI Row */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           <KpiCard
             label="Revenue"
             value={formatMoney(revenue, { compact: true })}
@@ -287,7 +288,7 @@ export default function DashboardPage({
         </div>
 
         {/* Pacing Banner */}
-        <div className="data-card rounded-lg p-4 flex items-center gap-4">
+        <div className="pacing-banner data-card rounded-lg p-4">
           <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -315,10 +316,10 @@ export default function DashboardPage({
         </div>
 
         {/* Charts row */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 data-card rounded-lg p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 data-card rounded-lg p-5">
             <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <h3 className="text-sm font-semibold text-[#161616]">Monthly Revenue</h3>
                 <div className="flex gap-3 text-xs">
                   <span className="flex items-center gap-1">
@@ -336,7 +337,7 @@ export default function DashboardPage({
                 </div>
               </div>
             </div>
-            <div className="h-64">
+            <div className="chart-block">
               <RevenueBarChart series={revenueSeries} />
             </div>
           </div>
@@ -389,8 +390,8 @@ export default function DashboardPage({
         </div>
 
         {/* Bottom: bookings + AI */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 data-card rounded-lg overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 data-card rounded-lg overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
               <h3 className="text-sm font-semibold text-[#161616]">Upcoming Stays</h3>
               <Link
@@ -405,7 +406,7 @@ export default function DashboardPage({
                 No upcoming stays. <Link href="/bookings/new" className="text-[#0f62fe]">Add one</Link>.
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <><div className="p-4 lg:hidden"><BookingCards bookings={upcoming} /></div><div className="table-scroll hidden lg:block" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                     <th className="px-5 py-2.5 font-medium">Guest</th>
@@ -444,7 +445,7 @@ export default function DashboardPage({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div></>
             )}
           </div>
 
@@ -489,12 +490,13 @@ export default function DashboardPage({
                 <input
                   type="text"
                   name="q"
+                  aria-label="Ask about performance"
                   placeholder="Ask about performance..."
                   className="input-base pr-8"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2.5 top-2.5 text-gray-300 hover:text-[#0f62fe]"
+                  className="absolute right-0 top-0 text-gray-300 hover:text-[#0f62fe]"
                   aria-label="Ask"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,7 +523,7 @@ export default function DashboardPage({
               </span>
             </div>
           </div>
-          <div className="h-48">
+          <div className="chart-block">
             <OccupancyLineChart series={occupancySeries} />
           </div>
         </div>

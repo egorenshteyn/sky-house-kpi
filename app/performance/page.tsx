@@ -59,8 +59,8 @@ export default function PerformancePage({
           </div>
         }
       />
-      <div className="px-6 py-6 space-y-4">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="page-content space-y-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Stat label="Total Revenue" value={formatMoney(yearTotals.revenue, { compact: true })} />
           <Stat label="Nights" value={formatNumber(yearTotals.nights)} />
           <Stat label="Stays" value={formatNumber(yearTotals.stays)} />
@@ -68,7 +68,7 @@ export default function PerformancePage({
         </div>
 
         <div className="data-card rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                 <th className="px-5 py-2.5 font-medium">Month</th>
@@ -155,7 +155,7 @@ export default function PerformancePage({
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </>

@@ -85,7 +85,7 @@ export default function ScenarioPanel({ defaults }: { defaults: Defaults }) {
         Adjust property value, annual revenue, or OpEx to recompute NOI, cap rate,
         and gross yield. Values persist locally in this browser.
       </p>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Field label="Property asset value">
           <input
             type="number"
@@ -117,7 +117,7 @@ export default function ScenarioPanel({ defaults }: { defaults: Defaults }) {
           />
         </Field>
       </div>
-      <div className="grid grid-cols-3 gap-4 mt-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
         <DerivedStat
           label="Net Operating Income"
           value={formatMoney(noi, { compact: true })}
@@ -146,10 +146,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className="block">
+      <span className="block text-xs text-gray-500 mb-1">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 

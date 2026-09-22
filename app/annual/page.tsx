@@ -53,7 +53,7 @@ export default function AnnualPage() {
           { compact: true },
         )} all-time revenue`}
       />
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         <div className="data-card rounded-lg p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-[#161616]">Revenue by month</h3>
@@ -66,7 +66,7 @@ export default function AnnualPage() {
               ))}
             </div>
           </div>
-          <div className="h-72">
+          <div className="chart-block">
             <RevenueBarChart series={series} />
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function AnnualPage() {
           <div className="px-5 py-4 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-[#161616]">Year-over-year totals</h3>
           </div>
-          <table className="w-full text-sm">
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                 <th className="px-5 py-2.5 font-medium">Year</th>
@@ -148,7 +148,7 @@ export default function AnnualPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </>

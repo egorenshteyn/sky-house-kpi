@@ -1,5 +1,7 @@
 "use client";
 
+import ChartData from "./ChartData";
+
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -43,10 +45,11 @@ export default function OccupancyLineChart({ series }: { series: Series[] }) {
   };
   const options = {
     responsive: true,
+    interaction: { mode: "index" as const, intersect: false },
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { grid: { display: false }, border: { display: false } },
+      x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6, color: "#525252" }, grid: { display: false }, border: { display: false } },
       y: {
         grid: { color: "#f4f4f4" },
         border: { display: false },
@@ -55,5 +58,5 @@ export default function OccupancyLineChart({ series }: { series: Series[] }) {
       },
     },
   };
-  return <Line data={data} options={options} />;
+  return <><div className="chart-frame"><Line role="img" aria-label="Monthly occupancy comparison. Values available in the table below." data={data} options={options} /></div><ChartData series={series} unit="percent" /></>;
 }

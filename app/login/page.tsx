@@ -33,9 +33,9 @@ function LoginForm() {
     <div className="min-h-screen bg-[#f4f4f4] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="bg-[#161616] text-white rounded-t-lg px-6 py-4">
-          <div className="text-sm font-semibold tracking-tight">SKY HOUSE</div>
+          <h1 className="text-xl font-medium tracking-tight">Welcome to Sky House</h1>
           <div className="text-xs text-white/50 mt-0.5 font-mono">
-            KPI Tracker — sign in
+            Dillon Beach · Property management
           </div>
         </div>
         <form
@@ -43,9 +43,10 @@ function LoginForm() {
           className="bg-white border border-gray-200 border-t-0 rounded-b-lg p-6 space-y-4"
         >
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Username</label>
-            <input
+            <label htmlFor="page-field-1" className="block text-xs text-gray-500 mb-1">Username</label>
+            <input id="page-field-1"
               type="text"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="input-base"
@@ -54,16 +55,17 @@ function LoginForm() {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Password</label>
-            <input
+            <label htmlFor="page-field-2" className="block text-xs text-gray-500 mb-1">Password</label>
+            <input id="page-field-2"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-base"
               required
             />
           </div>
-          {error && <div className="text-xs text-red-600">{error}</div>}
+          {error && <div role="alert" className="text-xs text-red-600">{error}</div>}
           <button
             type="submit"
             disabled={loading}

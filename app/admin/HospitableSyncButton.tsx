@@ -46,7 +46,7 @@ export default function HospitableSyncButton() {
 
   return (
     <div className="data-card rounded-lg p-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-[#161616]">Hospitable Sync</h3>
           <p className="mt-1 text-xs text-gray-500">
@@ -64,7 +64,7 @@ export default function HospitableSyncButton() {
       </div>
 
       {result && (
-        <div className="mt-4 grid grid-cols-5 gap-3 text-xs">
+        <div className="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
           {[
             ["Reservations", result.fetched],
             ["Stays created", result.created],
@@ -82,7 +82,7 @@ export default function HospitableSyncButton() {
               <div className="mt-1 font-mono text-lg font-semibold text-[#161616]">{value}</div>
             </div>
           ))}
-          <div className="col-span-5 text-[11px] text-gray-500">
+          <div className="lg:col-span-5 text-[11px] text-gray-500">
             Synced reservations and Hospitable calendar blocks for {result.from} → {result.to}. Batch {result.batchId.slice(0, 8)}.
           </div>
         </div>

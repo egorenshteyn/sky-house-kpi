@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Modal from "./Modal";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -130,59 +132,40 @@ const NAV_LINKS: { href: string; label: string; icon: (props: IconProps) => JSX.
 
 export default function Header() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [pathname]);
   if (pathname === "/login" || isPublicStandaloneRoute(pathname)) return null;
 
-  return (
-    <aside className="sidebar group fixed top-0 left-0 z-40 h-screen bg-[#161616] text-white flex flex-col overflow-hidden">
-      <Link href="/" className="sidebar-logo shrink-0 border-b border-white/5">
-        <span className="sidebar-logo-mark">S</span>
-        <span className="nav-label sidebar-logo-label">SKY HOUSE</span>
-      </Link>
-
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-1">
-        {NAV_LINKS.map((link) => {
-          const isActive =
-            link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-          const Icon = link.icon;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`sidebar-link ${isActive ? "active" : ""}`}
-              title={link.label}
-            >
-              <Icon className="sidebar-icon" />
-              <span className="nav-label sidebar-link-label">{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="shrink-0 border-t border-white/5 py-3 space-y-1">
-        <Link href="/bookings/new" className="sidebar-action sidebar-action-primary" title="New Booking">
-          <svg className="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
-          </svg>
-          <span className="nav-label sidebar-link-label">New Booking</span>
-        </Link>
-        <Link href="/upload" className="sidebar-action sidebar-action-ghost" title="Upload">
-          <svg className="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-          <span className="nav-label sidebar-link-label">Upload</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="sidebar-action sidebar-action-ghost w-full"
-          title="Sign out"
-        >
-          <svg className="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H9m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h6a3 3 0 013 3v1" />
-          </svg>
-          <span className="nav-label sidebar-link-label">Sign out</span>
-        </button>
-      </div>
-    </aside>
-  );
+  const navigation = <>
+    <Link href="/" className="sidebar-logo" onClick={() => setOpen(false)}>
+      <span className="sidebar-logo-mark">S</span>
+      <span><strong>SKY HOUSE</strong><small>Dillon Beach · Property overview</small></span>
+    </Link>
+    <nav aria-label="Main navigation" className="sidebar-nav">
+      {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        return <Link key={href} href={href} onClick={() => setOpen(false)}
+          aria-current={active ? "page" : undefined} className={`sidebar-link ${active ? "active" : ""}`}>
+          <Icon className="sidebar-icon" /><span>{label}</span>
+        </Link>;
+      })}
+    </nav>
+    <div className="sidebar-footer">
+      <Link href="/bookings/new" className="sidebar-action sidebar-action-primary" onClick={() => setOpen(false)}>＋ New booking</Link>
+      <Link href="/upload" className="sidebar-action sidebar-action-ghost" onClick={() => setOpen(false)}>Upload booking</Link>
+      <button type="button" onClick={() => signOut({ callbackUrl: "/login" })} className="sidebar-action sidebar-action-ghost">Sign out</button>
+    </div>
+  </>;
+  return <>
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <header className="mobile-header">
+      <Link href="/" aria-label="Sky House dashboard"><span className="mobile-mark">S</span> SKY HOUSE</Link>
+      <button type="button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(true)} aria-label="Open navigation">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="1.5" /></svg>
+        Menu
+      </button>
+    </header>
+    <aside className="sidebar desktop-sidebar">{navigation}</aside>
+    {open && <Modal label="Navigation" onClose={() => setOpen(false)} className="navigation-dialog"><div className="sidebar">{navigation}</div></Modal>}
+  </>;
 }

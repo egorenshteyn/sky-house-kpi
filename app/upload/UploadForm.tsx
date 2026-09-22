@@ -25,17 +25,17 @@ export default function UploadForm() {
   return (
     <div className="space-y-4">
       <div className="data-card rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-[#161616] mb-2">1. Drop a file</h3>
+        <h3 className="text-sm font-semibold text-[#161616] mb-2">1. Choose a file</h3>
         <p className="text-xs text-gray-500 mb-4">
           Supports screenshots from Airbnb, VRBO, Booking.com, etc. AI extraction is on the
           roadmap — for v1, you&apos;ll fill in the form below manually.
         </p>
-        <label className="block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-[#0f62fe] transition-colors">
+        <label className="block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-[#0f62fe] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-[#0f62fe]">
           <input
             type="file"
             accept="image/*,application/pdf"
             onChange={onFileChange}
-            className="hidden"
+            className="sr-only"
           />
           {file ? (
             <div>

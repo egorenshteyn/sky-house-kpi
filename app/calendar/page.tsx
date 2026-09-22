@@ -1,3 +1,4 @@
+import BookingCards from "@/components/BookingCards";
 import SubHeader from "@/components/SubHeader";
 import { getAllBookings } from "@/lib/queries";
 import { channelColor, formatMoney } from "@/lib/format";
@@ -64,6 +65,7 @@ export default function CalendarPage({
         actions={
           <div className="flex items-center gap-2">
             <Link
+              aria-label="Previous month"
               href={`/calendar?year=${prev.year}&month=${prev.month}`}
               className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-50"
             >
@@ -76,6 +78,7 @@ export default function CalendarPage({
               Today
             </Link>
             <Link
+              aria-label="Next month"
               href={`/calendar?year=${next.year}&month=${next.month}`}
               className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-50"
             >
@@ -84,13 +87,14 @@ export default function CalendarPage({
           </div>
         }
       />
-      <div className="px-6 py-6">
+      <div className="page-content">
+        <p className="text-xs text-gray-500 mb-3 lg:hidden">Month overview · stay details and blocked dates below.</p>
         <div className="data-card rounded-lg overflow-hidden">
           <div className="grid grid-cols-7 border-b border-gray-100">
             {DAY_LABELS.map((d) => (
               <div
                 key={d}
-                className="px-3 py-2 text-xs font-mono uppercase text-gray-400 text-center"
+                className="px-1 sm:px-3 py-2 text-xs font-mono uppercase text-gray-400 text-center"
               >
                 {d}
               </div>
@@ -102,7 +106,7 @@ export default function CalendarPage({
                 return (
                   <div
                     key={i}
-                    className="min-h-[120px] border-r border-b border-gray-100 bg-gray-50/30"
+                    className="min-h-[72px] sm:min-h-[120px] border-r border-b border-gray-100 bg-gray-50/30"
                   />
                 );
               }
@@ -113,7 +117,7 @@ export default function CalendarPage({
               return (
                 <div
                   key={i}
-                  className={`min-h-[120px] border-r border-b border-gray-100 p-2 ${
+                  className={`min-h-[72px] sm:min-h-[120px] border-r border-b border-gray-100 p-1 sm:p-2 ${
                     isToday ? "bg-blue-50/30" : "bg-white"
                   }`}
                 >
@@ -131,8 +135,8 @@ export default function CalendarPage({
                         <Link
                           key={b.id}
                           href={`/bookings/${b.id}`}
-                          className="block text-xs px-1.5 py-0.5 rounded text-white truncate"
-                          style={{ background: isBlock ? BLOCK_COLOR : channelColor(b.channel || "") }}
+                          className="calendar-booking block text-[10px] sm:text-xs px-1 py-1 rounded text-white truncate min-h-11 sm:min-h-0"
+                          style={{ background: isBlock ? BLOCK_COLOR : channelColor(b.channel || ""), color: ["Airbnb", "TripAdvisor", "StayOne"].includes(b.channel || "") && !isBlock ? "#161616" : "#fff" }}
                           title={
                             isBlock
                               ? `${b.guestName || "Blocked"} — ${b.nights} blocked nights`
@@ -164,7 +168,12 @@ export default function CalendarPage({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
+        <section className="mt-6 lg:hidden" aria-label="Monthly agenda">
+          <h2 className="text-lg font-medium mb-3">This month</h2>
+          {monthStays.length + monthBlocks.length === 0 && <p className="data-card p-5 text-sm text-gray-500">No stays or blocks this month.</p>}
+          <BookingCards bookings={[...monthStays, ...monthBlocks].sort((a, b) => (a.checkIn || "").localeCompare(b.checkIn || ""))} />
+        </section>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-500">
           <span className="font-mono">Legend:</span>
           {["Direct", "Airbnb", "Luxe", "VRBO"].map((c) => (
             <span key={c} className="flex items-center gap-1.5">

@@ -107,7 +107,7 @@ export default function CompetitorForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Name" full>
           <input
             type="text"
@@ -287,9 +287,9 @@ function Field({
   full?: boolean;
 }) {
   return (
-    <div className={full ? "col-span-2" : ""}>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className={full ? "sm:col-span-2 block" : "block"}>
+      <span className="block text-xs text-gray-500 mb-1">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }

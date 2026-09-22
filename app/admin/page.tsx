@@ -65,10 +65,10 @@ export default function AdminPage() {
   return (
     <>
       <SubHeader title="Data Admin" subtitle="Quality checks, import history, exports" />
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         <HospitableSyncButton />
 
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {Object.entries(counts).map(([k, v]) => (
             <div key={k} className="data-card rounded-lg p-4">
               <div className="text-xs text-gray-400 font-medium mb-1 uppercase">{k}</div>
@@ -77,7 +77,7 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Quality label="Overlapping bookings" count={overlaps.length} tone={overlaps.length ? "red" : "green"}>
             {overlaps.slice(0, 5).map((o, i) => (
               <div key={i} className="text-xs text-gray-600 py-1 font-mono">
@@ -128,7 +128,7 @@ export default function AdminPage() {
               </a>
             </div>
           </div>
-          <table className="w-full text-sm">
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                 <th className="px-5 py-2.5 font-medium">Source</th>
@@ -169,7 +169,7 @@ export default function AdminPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </>

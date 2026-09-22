@@ -50,8 +50,8 @@ export default function ChannelsPage() {
           { compact: true },
         )} all-time revenue`}
       />
-      <div className="px-6 py-6 space-y-6">
-        <div className="grid grid-cols-3 gap-4">
+      <div className="page-content space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {coreChannels.map((c) => {
             const allTime = totals[c.name] || 0;
             const ytd = currentTotals[c.name] || 0;
@@ -118,7 +118,7 @@ export default function ChannelsPage() {
                 Additional listing platforms (no historical revenue tracked separately)
               </p>
             </div>
-            <table className="w-full text-sm">
+            <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                   <th className="px-5 py-2.5 font-medium">Platform</th>
@@ -154,7 +154,7 @@ export default function ChannelsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
 

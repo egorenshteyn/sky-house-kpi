@@ -22,7 +22,7 @@ export default function KnowledgePage({
         title="Knowledge Base"
         subtitle={`${entries.length} entr${entries.length === 1 ? "y" : "ies"} · context, strategy, experiments, and notes`}
       />
-      <div className="px-6 py-6">
+      <div className="page-content">
         <KnowledgeClient
           entries={entries}
           currentSearch={search}

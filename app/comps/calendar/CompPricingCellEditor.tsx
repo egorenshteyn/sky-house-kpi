@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -29,6 +31,7 @@ export default function CompPricingCellEditor({
   const [minNights, setMinNights] = useState(initial?.minimumNights?.toString() || "");
   const [available, setAvailable] = useState(initial?.available !== 0);
   const [notes, setNotes] = useState(initial?.notes || "");
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function save() {
@@ -41,13 +44,18 @@ export default function CompPricingCellEditor({
       available: available ? 1 : 0,
       notes: notes || null,
     };
-    await fetch("/api/comps/pricing", {
+    setError(null);
+    try {
+    const res = await fetch("/api/comps/pricing", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (!res.ok) throw new Error("Could not save snapshot. Please try again.");
     router.refresh();
     onClose();
+    } catch { setError("Could not save snapshot. Please try again."); }
+    finally { setSubmitting(false); }
   }
 
   async function remove() {
@@ -60,14 +68,9 @@ export default function CompPricingCellEditor({
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg max-w-md w-full p-6 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal label={`Pricing for ${competitorName} on ${date}`} onClose={onClose}>
+      <div className="space-y-4 pt-5">
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div>
           <div className="text-xs text-gray-400 font-mono uppercase">
             {competitorName}
@@ -75,23 +78,22 @@ export default function CompPricingCellEditor({
           <h3 className="text-sm font-semibold text-[#161616]">{date}</h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="comppricingcelleditor-field-1" className="block text-xs text-gray-500 mb-1">
               Nightly rate ($)
             </label>
-            <input
+            <input id="comppricingcelleditor-field-1"
               type="number"
               step="0.01"
               value={rate}
               onChange={(e) => setRate(e.target.value)}
               className="input-base"
-              autoFocus
-            />
+              />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Min nights</label>
-            <input
+            <label htmlFor="comppricingcelleditor-field-2" className="block text-xs text-gray-500 mb-1">Min nights</label>
+            <input id="comppricingcelleditor-field-2"
               type="number"
               value={minNights}
               onChange={(e) => setMinNights(e.target.value)}
@@ -113,8 +115,8 @@ export default function CompPricingCellEditor({
         </div>
 
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Notes</label>
-          <input
+          <label htmlFor="comppricingcelleditor-field-3" className="block text-xs text-gray-500 mb-1">Notes</label>
+          <input id="comppricingcelleditor-field-3"
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -155,6 +157,6 @@ export default function CompPricingCellEditor({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

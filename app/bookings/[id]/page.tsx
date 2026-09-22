@@ -27,8 +27,8 @@ export default function BookingDetailPage({ params }: { params: { id: string } }
           </div>
         }
       />
-      <div className="px-6 py-6 space-y-4">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="page-content space-y-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Stat label="Revenue" value={formatMoney(b.grossRevenue || 0)} />
           <Stat label="Net Payout" value={formatMoney(b.netPayout || 0)} />
           <Stat label="ADR" value={formatMoney(b.avgNightlyRate || 0)} />

@@ -42,7 +42,7 @@ export default function InsightsPage({
   return (
     <>
       <SubHeader title="AI Insights" subtitle={`${insights.length} insights · heuristic-based for v1`} />
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         <div className="data-card rounded-lg p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-5 h-5 rounded bg-[#0f62fe] flex items-center justify-center">
@@ -56,6 +56,7 @@ export default function InsightsPage({
             <input
               type="text"
               name="q"
+                  aria-label="Ask about performance"
               defaultValue={q}
               placeholder="e.g. How are we pacing? Which channel grew most?"
               className="input-base pr-10"
@@ -63,7 +64,7 @@ export default function InsightsPage({
             />
             <button
               type="submit"
-              className="absolute right-2.5 top-2.5 text-gray-400 hover:text-[#0f62fe]"
+              className="absolute right-0 top-0 text-gray-400 hover:text-[#0f62fe]"
               aria-label="Ask"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +80,7 @@ export default function InsightsPage({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {insights.map((ins, i) => {
             const borderColor =
               ins.priority === "high"

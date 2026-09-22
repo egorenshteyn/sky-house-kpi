@@ -66,10 +66,10 @@ export default function BulkPricingClient({
         className="data-card rounded-lg p-5 space-y-4"
       >
         <h3 className="text-sm font-semibold text-[#161616]">Bulk pricing entry</h3>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-3">
-            <label className="block text-xs text-gray-500 mb-1">Competitor</label>
-            <select
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-3">
+            <label htmlFor="bulkpricingclient-field-1" className="block text-xs text-gray-500 mb-1">Competitor</label>
+            <select id="bulkpricingclient-field-1"
               value={competitorId}
               onChange={(e) => setCompetitorId(e.target.value)}
               className="input-base"
@@ -83,8 +83,8 @@ export default function BulkPricingClient({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Start date</label>
-            <input
+            <label htmlFor="bulkpricingclient-field-2" className="block text-xs text-gray-500 mb-1">Start date</label>
+            <input id="bulkpricingclient-field-2"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -93,8 +93,8 @@ export default function BulkPricingClient({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">End date</label>
-            <input
+            <label htmlFor="bulkpricingclient-field-3" className="block text-xs text-gray-500 mb-1">End date</label>
+            <input id="bulkpricingclient-field-3"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -103,10 +103,10 @@ export default function BulkPricingClient({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="bulkpricingclient-field-4" className="block text-xs text-gray-500 mb-1">
               Nightly rate ($)
             </label>
-            <input
+            <input id="bulkpricingclient-field-4"
               type="number"
               step="0.01"
               value={rate}
@@ -115,8 +115,8 @@ export default function BulkPricingClient({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Min nights</label>
-            <input
+            <label htmlFor="bulkpricingclient-field-5" className="block text-xs text-gray-500 mb-1">Min nights</label>
+            <input id="bulkpricingclient-field-5"
               type="number"
               value={minNights}
               onChange={(e) => setMinNights(e.target.value)}
@@ -124,7 +124,7 @@ export default function BulkPricingClient({
               min={1}
             />
           </div>
-          <div className="col-span-2 flex items-end">
+          <div className="lg:col-span-2 flex items-end">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -134,9 +134,9 @@ export default function BulkPricingClient({
               Available across this range
             </label>
           </div>
-          <div className="col-span-3">
-            <label className="block text-xs text-gray-500 mb-1">Notes</label>
-            <input
+          <div className="lg:col-span-3">
+            <label htmlFor="bulkpricingclient-field-6" className="block text-xs text-gray-500 mb-1">Notes</label>
+            <input id="bulkpricingclient-field-6"
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -172,7 +172,7 @@ export default function BulkPricingClient({
             No pricing snapshots yet.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                 <th className="px-5 py-2.5 font-medium">Date</th>
@@ -216,7 +216,7 @@ export default function BulkPricingClient({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>

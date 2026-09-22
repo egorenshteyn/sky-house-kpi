@@ -53,15 +53,15 @@ export default function FinancialsPage() {
         title="Financials"
         subtitle={`Property value ${formatMoney(PROPERTY_VALUE, { compact: true })} · Cap rate ${capRate.toFixed(1)}%`}
       />
-      <div className="px-6 py-6 space-y-4">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="page-content space-y-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Stat label={`${currentYear} YTD Revenue`} value={formatMoney(ytdRevenue, { compact: true })} />
           <Stat label="Trailing 12mo Revenue" value={formatMoney(trailingRevenue, { compact: true })} />
           <Stat label="Annual OpEx" value={formatMoney(yearlyOpex, { compact: true })} />
           <Stat label="Annual Cash Outflow" value={formatMoney(yearlyOutflow, { compact: true })} />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Stat label="Net Operating Income" value={formatMoney(noi, { compact: true })} sub="NOI = Revenue − OpEx (excl. financing)" />
           <Stat label="Cap Rate" value={formatPct(capRate)} sub="6–8% considered good" />
           <Stat label="Gross Yield" value={formatPct(grossYield)} sub="Annual revenue ÷ property value" />
@@ -74,7 +74,7 @@ export default function FinancialsPage() {
               Monthly OpEx {formatMoney(monthlyOpexTotal)} · Cash outflow {formatMoney(monthlyCashOutflowTotal)}/mo (incl. principal)
             </p>
           </div>
-          <table className="w-full text-sm">
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                 <th className="px-5 py-2.5 font-medium">Category</th>
@@ -121,7 +121,7 @@ export default function FinancialsPage() {
                 return rows;
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <ScenarioPanel

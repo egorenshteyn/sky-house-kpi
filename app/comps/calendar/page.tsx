@@ -96,6 +96,7 @@ export default function CompPricingCalendarPage({
               Manage comps
             </Link>
             <Link
+              aria-label="Previous month"
               href={`/comps/calendar?year=${prev.year}&month=${prev.month}`}
               className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-50"
             >
@@ -108,6 +109,7 @@ export default function CompPricingCalendarPage({
               Today
             </Link>
             <Link
+              aria-label="Next month"
               href={`/comps/calendar?year=${next.year}&month=${next.month}`}
               className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-50"
             >
@@ -116,7 +118,7 @@ export default function CompPricingCalendarPage({
           </div>
         }
       />
-      <div className="px-6 py-6 space-y-6">
+      <div className="page-content space-y-6">
         {competitors.length === 0 ? (
           <div className="data-card rounded-lg p-10 text-center">
             <div className="text-sm text-gray-400 mb-3">
@@ -144,7 +146,7 @@ export default function CompPricingCalendarPage({
               monthLabel={`${MONTH_NAMES[month - 1]} ${year}`}
             />
 
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <SummaryCard
                 label="Your avg rate"
                 value={yourAvg ? `$${Math.round(yourAvg)}` : "—"}

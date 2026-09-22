@@ -719,3 +719,22 @@
     display: block !important;
   }
 }
+
+/* Align the standalone estimator with Sky House's Carbon surfaces. */
+.page { background: #f4f4f4; color: #161616; font-family: "IBM Plex Sans", sans-serif; }
+.hero { background-color: #161616; }
+.heroInner h1, .progressPanel h2, .formStep h2, .report h2, .heroPanel strong, .metricHero strong { font-family: "IBM Plex Sans", sans-serif; letter-spacing: -.035em; }
+.progressPanel, .formCard, .report, .metricsGrid article, .reportBlock, .methodology { background: white; border-color: #e0e0e0; box-shadow: none; }
+.field input, .field select, .optionCard, .toggleCard, .secondaryButton { background: #f4f4f4; border-color: #c6c6c6; border-radius: 4px; }
+.primaryButton, .stepActive span, .metricHero { background: #0f62fe; border-color: #0f62fe; }
+.primaryButton, .secondaryButton { border-radius: 4px; font-weight: 500; min-height: 48px; }
+.optionCardActive, .toggleActive { background: #edf5ff; border-color: #0f62fe; }
+.field input:focus, .field select:focus, .optionCard:focus-within, .toggleCard:focus-within { outline: 2px solid #0f62fe; }
+.sourceLinks a, .calculationDisclosure summary { min-height: 44px; display: inline-flex; align-items: center; }
+@media (max-width: 760px) {
+  .heroInner h1 { font-size: clamp(2.5rem, 10vw, 3.2rem); line-height: 1.05; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field input, .field select { font-size: 16px; }
+  .metricHero strong { font-size: clamp(1.8rem, 7.5vw, 2.35rem); overflow-wrap: anywhere; line-height: 1.2; }
+  .seasonRow div:first-child { flex-wrap: wrap; gap: 6px; }
+}

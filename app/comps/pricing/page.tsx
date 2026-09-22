@@ -30,7 +30,7 @@ export default function CompPricingPage() {
           </div>
         }
       />
-      <div className="px-6 py-6">
+      <div className="page-content">
         <BulkPricingClient competitors={competitors} recent={recent} />
       </div>
     </>

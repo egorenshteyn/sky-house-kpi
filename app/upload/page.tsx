@@ -10,7 +10,7 @@ export default function UploadPage() {
         title="Upload"
         subtitle="Drop a screenshot or document and create a booking from it"
       />
-      <div className="px-6 py-6">
+      <div className="page-content">
         <UploadForm />
       </div>
     </>

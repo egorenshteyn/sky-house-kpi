@@ -365,9 +365,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
-    <div className={full ? "md:col-span-3" : ""}>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className={full ? "md:col-span-3 block" : "block"}>
+      <span className="block text-xs text-gray-500 mb-1">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }

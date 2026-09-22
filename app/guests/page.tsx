@@ -36,26 +36,41 @@ export default function GuestsPage({
   return (
     <>
       <SubHeader title="Guest CRM" subtitle={`${guests.length} contacts`} />
-      <div className="px-6 py-6 space-y-4">
+      <div className="page-content space-y-4">
         <form className="data-card rounded-lg p-4 flex items-center gap-3">
           <input
-            type="text"
+            type="search"
+            aria-label="Search guests"
             name="q"
             defaultValue={q}
             placeholder="Search guests by name, phone, email…"
-            className="input-base !w-72"
+            className="input-base w-full sm:max-w-xs"
           />
           <button type="submit" className="text-sm bg-[#161616] text-white px-4 py-2 rounded-md">
             Search
           </button>
         </form>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 data-card rounded-lg overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 data-card rounded-lg overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-[#161616]">All guests</h3>
             </div>
-            <table className="w-full text-sm">
+            <div className="record-list p-4 lg:hidden">
+              {guests.length === 0 && <p className="text-sm text-gray-500">No guests match your search.</p>}
+              {guests.map((g) => <article className="record-card" key={g.id}>
+                <h3>{g.firstName} {g.lastName}</h3>
+                <p className="text-xs text-gray-500 mt-1">{g.preferredChannel || "No source channel"}</p>
+                <dl>
+                  <div><dt>Stays</dt><dd>{g.totalStays || 0}</dd></div>
+                  <div><dt>Lifetime revenue</dt><dd>{formatMoney(g.totalRevenue || 0)}</dd></div>
+                  <div><dt>Phone</dt><dd>{g.phone || "—"}</dd></div>
+                  <div><dt>Last stay</dt><dd>{g.lastStay ? formatDateShort(g.lastStay) : "—"}</dd></div>
+                </dl>
+                <Link className="record-link" href={`/guests/${g.id}`}>View guest <span className="ml-auto" aria-hidden="true">→</span></Link>
+              </article>)}
+            </div>
+            <div className="table-scroll hidden lg:block" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
                   <th className="px-5 py-2.5 font-medium">Name</th>
@@ -126,7 +141,7 @@ export default function GuestsPage({
                   ))
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           <div className="data-card rounded-lg">

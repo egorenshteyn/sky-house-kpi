@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "./Modal";
+
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { isPublicStandaloneRoute } from "@/lib/publicRoutes";
@@ -23,6 +25,7 @@ export default function AddContextFab() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,6 +45,8 @@ export default function AddContextFab() {
     const tagList = tags
       ? tags.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
+    setError(null);
+    try {
     const res = await fetch("/api/knowledge", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -52,6 +57,7 @@ export default function AddContextFab() {
         source: "manual",
       }),
     });
+    if (!res.ok) throw new Error("Could not save context. Please try again.");
     if (res.ok) {
       setContent("");
       setTags("");
@@ -63,7 +69,8 @@ export default function AddContextFab() {
         setSavedAt(null);
       }, 1000);
     }
-    setSubmitting(false);
+    } catch { setError("Could not save context. Please try again."); }
+    finally { setSubmitting(false); }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -80,8 +87,9 @@ export default function AddContextFab() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 bg-[#0f62fe] hover:bg-[#0353e9] text-white rounded-full shadow-lg px-4 py-3 text-sm font-medium inline-flex items-center gap-2 transition-colors"
+        className="context-fab bg-[#0f62fe] hover:bg-[#0353e9] text-white rounded-full shadow-lg px-4 py-3 text-sm font-medium inline-flex items-center gap-2 transition-colors"
         title="Add context to knowledge base"
+        aria-label="Add context"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -91,16 +99,14 @@ export default function AddContextFab() {
             d="M12 6v6m0 0v6m0-6h6m-6 0H6"
           />
         </svg>
-        Add context
+        <span className="hidden sm:inline">Add context</span>
       </button>
     );
   }
 
   return (
-    <div
-      className="fixed bottom-6 right-6 z-40 bg-white rounded-lg shadow-2xl border border-gray-200 w-[420px] max-w-[calc(100vw-3rem)]"
-      onKeyDown={onKeyDown}
-    >
+    <Modal label="Add context" onClose={() => setOpen(false)}>
+    <div onKeyDown={onKeyDown}>
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded bg-[#0f62fe] flex items-center justify-center">
@@ -126,8 +132,9 @@ export default function AddContextFab() {
         </button>
       </div>
       <div className="p-4 space-y-3">
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex items-center gap-2">
-          <select
+          <select aria-label="Context type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white"
@@ -138,13 +145,14 @@ export default function AddContextFab() {
           </select>
           <input
             type="text"
+            aria-label="Context tags"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="tags (comma-sep)"
             className="flex-1 text-xs border border-gray-200 rounded-md px-2 py-1.5"
           />
         </div>
-        <textarea
+        <textarea aria-label="Context"
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -166,6 +174,6 @@ export default function AddContextFab() {
           </button>
         </div>
       </div>
-    </div>
+    </div></Modal>
   );
 }

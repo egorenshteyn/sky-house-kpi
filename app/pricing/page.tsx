@@ -33,8 +33,8 @@ export default function PricingStrategyPage() {
         }
       />
 
-      <main className="px-6 py-6 space-y-6">
-        <section className="grid grid-cols-[1.4fr_0.8fr] gap-6">
+      <div className="page-content space-y-6">
+        <section className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.8fr] gap-6">
           <div className="data-card rounded-lg p-6 border-l-4 border-l-[#0f62fe]">
             <div className="text-xs font-mono uppercase tracking-wide text-[#0f62fe] mb-3">Executive posture</div>
             <h2 className="text-2xl font-semibold text-[#161616] leading-tight">
@@ -76,7 +76,7 @@ export default function PricingStrategyPage() {
             <p className="text-xs text-gray-400 mt-0.5">Airbnb-facing nightly targets; direct should usually sit 5–10% below guest-facing OTA total while preserving better owner net.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-400 font-mono">
                 <tr>
                   <th className="text-left px-5 py-3 font-medium">Period</th>
@@ -90,15 +90,15 @@ export default function PricingStrategyPage() {
               <tbody className="divide-y divide-gray-100">
                 {strategy.rateCards.map((card) => <RateRow key={card.period} card={card} />)}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </section>
 
-        <section className="grid grid-cols-2 gap-6">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Playbook title="Dynamic release schedule" rows={strategy.releaseRules.map((rule) => [rule.lead, rule.action])} />
           <Playbook title="Discount ladder" rows={strategy.discountLadder.map((rule) => [rule.lead, `${rule.trigger}: ${rule.action}`])} />
         </section>
-      </main>
+      </div>
     </>
   );
 }
@@ -116,7 +116,7 @@ function Metric({ label, value, caption, tone }: { label: string; value: string;
 
 function GapRow({ gap }: { gap: PricingGap }) {
   return (
-    <div className="px-5 py-4 grid grid-cols-[1fr_0.7fr_1.8fr_1.4fr] gap-4 items-start">
+    <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_0.7fr_1.8fr_1.4fr] gap-4 items-start">
       <div>
         <div className="font-mono text-sm font-semibold text-[#161616]">{gap.start} → {gap.end}</div>
         <div className="text-xs text-gray-400 mt-1">{gap.nights} nights · {gap.leadDays} days out · {gap.includesWeekend ? "includes weekend" : "midweek"}</div>

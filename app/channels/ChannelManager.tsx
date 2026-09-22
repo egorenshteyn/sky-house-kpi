@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ChannelRow } from "@/lib/queries";
@@ -61,7 +63,7 @@ export default function ChannelManager({
             Add channel
           </button>
         </div>
-        <table className="w-full text-sm">
+        <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-gray-400 font-mono uppercase bg-gray-50/50">
               <th className="px-5 py-2.5 font-medium">Name</th>
@@ -152,11 +154,11 @@ export default function ChannelManager({
               ))
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {showForm && (
-        <Modal onClose={() => setShowForm(false)}>
+        <Modal label="Channel details" onClose={() => setShowForm(false)}>
           <h3 className="text-sm font-semibold text-[#161616] mb-4">
             {editing ? "Edit channel" : "Add channel"}
           </h3>
@@ -225,7 +227,7 @@ function ChannelForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Name" full>
           <input
             type="text"
@@ -325,31 +327,9 @@ function Field({
   full?: boolean;
 }) {
   return (
-    <div className={full ? "col-span-2" : ""}>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className={full ? "sm:col-span-2 block" : "block"}>
+      <span className="block text-xs text-gray-500 mb-1">{label}</span>
       {children}
-    </div>
-  );
-}
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
+    </label>
   );
 }

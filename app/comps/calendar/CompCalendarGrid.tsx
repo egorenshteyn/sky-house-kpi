@@ -70,8 +70,9 @@ export default function CompCalendarGrid({
 
   return (
     <>
-      <div className="data-card rounded-lg overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
+      <p className="text-xs text-gray-500 mb-3">Scroll across dates. Select a competitor’s rate to edit its snapshot.</p>
+      <div className="data-card rounded-lg overflow-hidden">
+        <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table className="comp-calendar w-full text-xs border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               <th className="px-3 py-2 text-left font-mono text-[10px] uppercase text-gray-400 sticky left-0 bg-gray-50 z-10 min-w-[160px]">
@@ -132,6 +133,10 @@ export default function CompCalendarGrid({
                   return (
                     <td
                       key={d}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Edit ${c.name}, ${d}${snap?.nightlyRate ? `, $${snap.nightlyRate}` : ""}`}
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setEditing({ competitorId: c.id, competitorName: c.name, date: d, snapshot: snap }); } }}
                       onClick={() =>
                         setEditing({
                           competitorId: c.id,
@@ -164,11 +169,11 @@ export default function CompCalendarGrid({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
         <span className="font-mono">Color coding (your rate vs comp avg):</span>
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-sm bg-emerald-50 border border-emerald-200" />
