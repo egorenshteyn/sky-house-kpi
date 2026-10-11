@@ -122,13 +122,18 @@ function normalizeChannel(platform: string | null): string {
 
 function normalizeStatus(rawStatus: string | null, obj: unknown, checkOut: string | null): string {
   const status = (rawStatus || "").toLowerCase();
-  const reservationStatus = String(get(obj, "reservation_status") || "").toLowerCase();
+  const currentCategory = firstString(obj, ["reservation_status.current.category"]);
+  const currentSubCategory = firstString(obj, ["reservation_status.current.sub_category"]);
+  const reservationStatus = currentCategory
+    ? `${currentCategory} ${currentSubCategory || ""}`.toLowerCase()
+    : (firstString(obj, ["reservation_status"]) || "").toLowerCase();
   const stayType = String(get(obj, "stay_type") || "").toLowerCase();
   const ownerStay = get(obj, "owner_stay") === true;
-  const combined = `${status} ${reservationStatus}`;
+  const combined = reservationStatus || status;
 
   if (ownerStay || stayType.includes("owner")) return "owner_block";
-  if (combined.includes("cancel") || combined.includes("declin") || combined.includes("reject")) return "cancelled";
+  if (combined.includes("cancel") || combined.includes("declin") || combined.includes("reject") ||
+      combined.includes("expir") || combined.includes("not accepted")) return "cancelled";
   if (combined.includes("inquir") || combined.includes("pending") || combined.includes("tentative")) return "inquiry";
   if (checkOut && Date.parse(`${checkOut}T00:00:00Z`) < Date.now()) return "completed";
   return "booked";
@@ -161,7 +166,7 @@ export function normalizeHospitableBooking(obj: unknown): NormalizedHospitableBo
   if (!checkOut) warnings.push("Missing departure/check-out date");
   if (!externalId || !checkIn || !checkOut) return null;
 
-  const rawStatus = firstString(obj, ["status", "reservation_status"]);
+  const rawStatus = firstString(obj, ["status", "reservation_status.current.sub_category", "reservation_status.current.category", "reservation_status"]);
   const channel = normalizeChannel(firstString(obj, ["platform"]));
   const status = normalizeStatus(rawStatus, obj, checkOut);
   const nights = firstNumber(obj, ["nights"]) || nightsBetween(checkIn, checkOut);
